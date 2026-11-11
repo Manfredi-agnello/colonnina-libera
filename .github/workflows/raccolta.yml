@@ -1,0 +1,122 @@
+# Raccolta dati + pubblicazione del sito. Un giro ogni volta che parte.
+#
+# Chi lo fa partire:
+#  - la "sveglia" esterna (cron-job.org) ogni 5 minuti, tramite l'API di GitHub
+#    (workflow_dispatch): è il modo affidabile;
+#  - la programmazione di GitHub ogni 10 minuti, come riserva (GitHub può
+#    ritardarla o saltarla quando è sovraccarico).
+#
+# Segreti necessari (Settings -> Secrets and variables -> Actions):
+#  - HUB_TOKEN, HUB_REPO           token e nome del repository PRIVATO della zona hub
+#  - HUB_LAT, HUB_LON, HUB_RAGGIO_KM  coordinate dell'hub (non stanno nel codice pubblico)
+# Senza HUB_TOKEN il workflow funziona lo stesso, ma senza archivio hub.
+#
+# ATTENZIONE: i log di questo repository sono PUBBLICI. Nessun passaggio deve
+# stampare dati della zona hub.
+
+name: raccolta
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '*/10 * * * *'
+
+permissions:
+  contents: write     # per aggiornare il branch "stato"
+  pages: write        # per pubblicare il sito
+  id-token: write
+
+concurrency:
+  group: raccolta
+  cancel-in-progress: false
+
+jobs:
+  raccolta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.pubblica.outputs.page_url }}
+    env:
+      HAS_HUB: ${{ secrets.HUB_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: pip install -q -r requirements.txt
+
+      - name: Recupera lo stato del giro precedente (branch "stato")
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p stato && cd stato && git init -q
+          if git fetch -q --depth 1 "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}" stato 2>/dev/null; then
+            git checkout -q FETCH_HEAD -- .
+          else
+            echo "branch stato non ancora presente: si parte da zero"
+          fi
+
+      - name: Recupera l'archivio privato della zona hub
+        if: env.HAS_HUB == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.HUB_REPO }}
+          token: ${{ secrets.HUB_TOKEN }}
+          path: hub-dati
+          fetch-depth: 1
+
+      - name: Giro di raccolta
+        env:
+          HUB_LAT: ${{ secrets.HUB_LAT }}
+          HUB_LON: ${{ secrets.HUB_LON }}
+          HUB_RAGGIO_KM: ${{ secrets.HUB_RAGGIO_KM }}
+        run: |
+          if [ "$HAS_HUB" = "true" ]; then
+            python -m raccolta --stato stato --sito out/sito --hub hub-dati
+          else
+            python -m raccolta --stato stato --sito out/sito
+          fi
+
+      - name: Salva l'archivio privato (in silenzio)
+        if: always() && env.HAS_HUB == 'true'
+        run: |
+          cd hub-dati
+          git config user.name  "raccolta-bot"
+          git config user.email "raccolta-bot@users.noreply.github.com"
+          git add -A >/dev/null
+          if ! git diff --cached --quiet; then
+            git commit -q -m "giro $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push -q >/dev/null 2>&1 || { git pull -q --rebase >/dev/null 2>&1 && git push -q >/dev/null 2>&1; } \
+              || { echo "salvataggio archivio privato fallito"; exit 1; }
+          fi
+
+      - name: Salva lo stato (sovrascrive il branch "stato", senza storico)
+        if: always()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd stato
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q --orphan nuovo
+          git add -A
+          git commit -q -m "stato $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}" nuovo:stato
+
+      - name: Prepara il sito
+        run: |
+          mkdir -p _site/dati
+          cp -r sito/. _site/
+          cp out/sito/*.json _site/dati/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Pubblica su GitHub Pages
+        id: pubblica
+        uses: actions/deploy-pages@v4

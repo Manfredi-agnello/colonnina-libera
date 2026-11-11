@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Colonnine Sicilia</title>
+</head>
+<body>
+  <!-- Pagina provvisoria: il sito vero arriva in Fase 3. -->
+  <h1>Colonnine di ricarica in Sicilia</h1>
+  <p id="stato">Caricamento…</p>
+  <script>
+    fetch('dati/stato.json', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(s => {
+        const minuti = Math.round((Date.now() - Date.parse(s.aggiornato)) / 60000);
+        document.getElementById('stato').textContent =
+          `Ultimo aggiornamento: ${minuti} minuti fa — ${s.colonnine_lette} punti di ricarica in ${s.siti} siti.`;
+      })
+      .catch(() => { document.getElementById('stato').textContent = 'Dati non disponibili.'; });
+  </script>
+</body>
+</html>
