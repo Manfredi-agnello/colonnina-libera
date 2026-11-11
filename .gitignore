@@ -1,0 +1,19 @@
+# Ambiente Python locale
+.venv/
+__pycache__/
+*.pyc
+
+# Copia del progetto originale, tenuta solo come riferimento in locale
+originale/
+
+# File generati dalla raccolta: NON vanno nella storia di Git.
+# - stato/   vive su un branch separato "stato" che viene sovrascritto
+# - out/     viene pubblicato direttamente sul sito
+# - hub-dati/ è il repository PRIVATO della zona hub
+stato/
+out/
+hub-dati/
+
+# Configurazione privata dell'hub (coordinate): mai nel repository pubblico
+config/hub.local.json
+.env

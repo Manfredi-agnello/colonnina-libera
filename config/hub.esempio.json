@@ -1,0 +1,6 @@
+{
+  "_nota": "Copia questo file come config/hub.local.json e metti le coordinate vere. hub.local.json è ignorato da Git. Su GitHub Actions si usano invece i segreti HUB_LAT, HUB_LON, HUB_RAGGIO_KM.",
+  "lat": 0.0,
+  "lon": 0.0,
+  "raggio_km": 3
+}

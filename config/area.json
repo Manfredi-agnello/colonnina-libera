@@ -1,0 +1,8 @@
+{
+  "_nota": "Area coperta dal sito pubblico. bbox = [lat_min, lat_max, lon_min, lon_max]: rettangolo usato per trovare le colonnine nell'elenco nazionale. Poi si tiene una colonnina se il CAP è tra cap_min e cap_max OPPURE se la regione indicata dalla PUN è una delle 'regioni' (gli operatori la scrivono in modi diversi). Il rettangolo comprende anche un pezzo di Calabria, che così viene escluso.",
+  "nome": "Sicilia",
+  "bbox": [35.2, 38.9, 11.8, 15.7],
+  "cap_min": "90010",
+  "cap_max": "98168",
+  "regioni": ["sicilia", "sicily", "sicile", "sizilien", "regione siciliana"]
+}
