@@ -108,4 +108,24 @@ class Profili:
                         "fasce": "0-23 feriali, 24-47 sabato e domenica (ora italiana)",
                         "colonnine": out}, separators=(",", ":")),
             encoding="utf-8")
+        (cartella / "operatori.json").write_text(
+            json.dumps(self._affidabilita_operatori(operatore), ensure_ascii=False,
+                       separators=(",", ":")), encoding="utf-8")
         return len(out)
+
+    def _affidabilita_operatori(self, operatore: dict) -> list[dict]:
+        """Per operatore: % del tempo osservato con prese fuori servizio (pesata sul
+        tempo, non sul numero di prese) e se segnala l'occupazione."""
+        tot: dict[str, list[float]] = {}
+        for id_, (oss, _occ, gua) in self.c.items():
+            op = operatore.get(id_)
+            if not op:
+                continue
+            t = tot.setdefault(op, [0.0, 0.0, 0])
+            t[0] += sum(oss)
+            t[1] += sum(gua)
+            t[2] += 1
+        return sorted(({"operatore": op, "prese": n, "guasta_pct": round(100 * g / o, 1),
+                        "segnala_occupazione": op in self.operatori_occ}
+                       for op, (o, g, n) in tot.items() if o >= 50),
+                      key=lambda v: (-v["prese"], v["operatore"]))

@@ -20,7 +20,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import hub, sito
+from . import hub, prezzi, sito
 from .modello import normalizza
 from .profili import Profili
 from .pun import ErrorePUN, SessionePUN
@@ -129,6 +129,8 @@ def un_giro(args) -> bool:
     profili.aggiungi(colonnine, istante)
     profili.salva()
     n_profili = profili.esporta_per_sito(colonnine, cartella_sito)
+    for e in prezzi.scrivi_per_sito(colonnine, cartella_sito):
+        registra_errore(stato, f"prezzi.csv: {e} (riga ignorata)")
 
     hub_ok = None
     if args.hub:
