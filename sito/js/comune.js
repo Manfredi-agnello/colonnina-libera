@@ -151,6 +151,8 @@ export function esc(s) {
 }
 
 // Il sito funziona anche senza connessione (dopo la prima visita).
-if ("serviceWorker" in navigator && location.protocol !== "file:") {
+// In locale (prove sul computer) è spento, salvo con ?sw=1, per vedere subito le modifiche.
+const inLocale = ["localhost", "127.0.0.1"].includes(location.hostname) && !location.search.includes("sw=1");
+if ("serviceWorker" in navigator && location.protocol !== "file:" && !inLocale) {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }

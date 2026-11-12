@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Come funziona · Ricarica Sicilia</title>
+  <meta name="description" content="Da dove vengono i dati delle colonnine, ogni quanto si aggiornano, limiti, fonti e crediti.">
+  <meta name="theme-color" content="#0b4f7c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icone/icona.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icone/icona-180.png">
+  <link rel="stylesheet" href="css/stile.css">
+</head>
+<body>
+  <a class="salta" href="#contenuto">Vai ai contenuti</a>
+  <header id="testata"></header>
+  <main id="contenuto" class="pagina">
+    <h1>Come funziona</h1>
+    <p class="intro">Un sito gratuito e indipendente per trovare una colonnina libera in Sicilia.</p>
+
+    <p class="avviso"><b>Dati non ufficiali.</b> Le informazioni sono rielaborate a partire dalla Piattaforma Unica
+      Nazionale e sono fornite senza garanzia di completezza o correttezza. Prima di metterti in viaggio controlla
+      sempre nell'app dell'operatore.</p>
+
+    <h2>Da dove vengono i dati</h2>
+    <p>Lo stato delle colonnine viene dalla <a href="https://www.piattaformaunicanazionale.it/">Piattaforma Unica
+      Nazionale dei punti di ricarica (PUN)</a>, gestita dal GSE per il Ministero dell'Ambiente e della Sicurezza
+      Energetica (MASE). Gli operatori sono tenuti a comunicare lì le proprie colonnine e il loro stato.</p>
+    <p>Circa ogni 5 minuti un programma automatico legge lo stato di tutte le colonnine siciliane e aggiorna questo
+      sito. In alto trovi sempre l'orario dell'ultimo aggiornamento: se diventa arancione o rosso, la raccolta è in
+      ritardo e gli stati potrebbero non essere attuali.</p>
+
+    <h2>Cosa significano gli stati</h2>
+    <ul>
+      <li><b>Libera</b>: la presa è disponibile.</li>
+      <li><b>Occupata</b>: c'è un'auto in carica (o la presa è prenotata).</li>
+      <li><b>Fuori servizio</b>: l'operatore la segnala come guasta, bloccata o non operativa.</li>
+      <li><b>Non in tempo reale</b>: l'operatore non comunica lo stato in diretta, quindi non sappiamo se è libera.</li>
+    </ul>
+
+    <h2>Limiti da conoscere</h2>
+    <ul>
+      <li>Lo stato può essere in ritardo di qualche minuto rispetto alla realtà.</li>
+      <li>Alcuni operatori comunicano solo se la presa funziona, non se è occupata.</li>
+      <li>"Di solito libera a quest'ora" e "fuori servizio X%" si basano sugli ultimi giorni di raccolta: per una
+        colonnina nuova servono alcuni giorni prima di avere numeri affidabili. I dati più vecchi pesano sempre meno
+        (un dato di 3 settimane fa conta la metà).</li>
+      <li>I prezzi cambiano spesso: quelli rilevati a mano riportano la data dell'ultima verifica.</li>
+      <li>Coordinate e indirizzi sono quelli comunicati dagli operatori e a volte possono essere imprecisi.</li>
+    </ul>
+
+    <h2>Fonti, crediti e licenze</h2>
+    <ul>
+      <li>Dati delle colonnine: <b>Piattaforma Unica Nazionale (PUN), MASE/GSE</b>, rielaborati.</li>
+      <li>Progetto di partenza: <a href="https://github.com/PalermoHub/evcharginglogsicilia">EV Charging Log Sicilia</a>
+        di PalermoHub, a sua volta derivato da <a href="https://github.com/napo/evcharginglogtrento">evcharginglogtrento</a>
+        di Maurizio Napolitano. Il metodo di accesso alla PUN si deve anche al lavoro di
+        <a href="https://github.com/AgID/cruscotto-italia">AgID/cruscotto-italia</a>.</li>
+      <li>Mappa: <a href="https://openfreemap.org">OpenFreeMap</a>, © <a href="https://openmaptiles.org/">OpenMapTiles</a>,
+        dati © <a href="https://www.openstreetmap.org/copyright">contributori di OpenStreetMap</a> (ODbL).
+        Libreria <a href="https://maplibre.org/">MapLibre GL JS</a> (licenza BSD).</li>
+      <li>Carattere: Fraunces (SIL Open Font License).</li>
+      <li>Codice del sito: licenza <a href="https://www.wtfpl.net/">WTFPL</a>, come il progetto originale.</li>
+    </ul>
+
+    <h2>Contatti</h2>
+    <p id="contatti">Hai trovato un errore o una colonnina sbagliata? Segnalacelo: <span class="tenue">(contatto in arrivo)</span>.</p>
+    <p>Il sito è indipendente: non è affiliato né promosso da GSE, MASE, Regione Siciliana o dagli operatori di ricarica.</p>
+
+    <footer class="piede"><a href="privacy.html">Privacy</a></footer>
+  </main>
+  <script type="module">
+    import { intestazione } from "./js/comune.js";
+    intestazione("info");
+  </script>
+</body>
+</html>

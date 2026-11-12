@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Affidabilità delle colonnine in Sicilia · Ricarica Sicilia</title>
+  <meta name="description" content="Quante colonnine di ricarica sono libere, occupate o fuori servizio in Sicilia adesso, e quali operatori sono più affidabili.">
+  <meta name="theme-color" content="#0b4f7c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icone/icona.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icone/icona-180.png">
+  <link rel="stylesheet" href="css/stile.css">
+</head>
+<body>
+  <a class="salta" href="#contenuto">Vai ai contenuti</a>
+  <header id="testata"></header>
+  <main id="contenuto" class="pagina">
+    <h1>Affidabilità</h1>
+    <p class="intro">Quante prese funzionano adesso in Sicilia e quali operatori sono fuori servizio più spesso.</p>
+
+    <h2>Adesso in Sicilia</h2>
+    <div class="griglia-numeri" id="numeri" aria-live="polite"></div>
+    <p class="tenue"><small id="nota-adesso"></small></p>
+
+    <h2>Per provincia</h2>
+    <div class="tabella-scorri">
+      <table>
+        <caption class="sr-only">Stato delle prese per provincia</caption>
+        <thead><tr><th scope="col">Provincia</th><th scope="col" class="num">Prese</th><th scope="col" class="num">Libere</th><th scope="col" class="num">Occupate</th><th scope="col" class="num">Fuori servizio</th></tr></thead>
+        <tbody id="province"></tbody>
+      </table>
+    </div>
+
+    <h2>Operatori</h2>
+    <p>Percentuale del tempo in cui le prese di ogni operatore risultano fuori servizio, negli ultimi giorni
+      (i dati più vecchi contano sempre meno).</p>
+    <div class="tabella-scorri">
+      <table>
+        <caption class="sr-only">Tempo fuori servizio per operatore</caption>
+        <thead><tr><th scope="col">Operatore</th><th scope="col" class="num">Prese</th><th scope="col" class="num">Fuori servizio</th><th scope="col"><span class="sr-only">Grafico</span></th><th scope="col">Dice se è occupata?</th></tr></thead>
+        <tbody id="operatori"></tbody>
+      </table>
+    </div>
+    <p class="avviso" style="margin-top:1rem">"Fuori servizio" è lo stato che l'operatore comunica alla Piattaforma Unica Nazionale.
+      Può comprendere anche colonnine in manutenzione, non ancora attivate o temporaneamente scollegate dalla rete:
+      non è un giudizio sulla qualità del servizio. Sono mostrati solo gli operatori con almeno 10 prese.</p>
+
+    <footer class="piede">Dati PUN (MASE/GSE) rielaborati: non ufficiali, senza garanzia di completezza o correttezza.
+      <a href="info.html">Come funziona</a> · <a href="privacy.html">Privacy</a></footer>
+  </main>
+  <script type="module" src="js/affidabilita.js"></script>
+</body>
+</html>

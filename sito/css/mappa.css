@@ -25,7 +25,7 @@ body.con-mappa { height: 100dvh; overflow: hidden; display: flex; flex-direction
 .riga-filtri.azioni { display: flex; justify-content: flex-end; gap: 8px; margin: 0; }
 
 .vista {
-  position: absolute; z-index: 5; top: 62px; right: 12px;
+  position: absolute; z-index: 5; top: 62px; left: 12px;
   display: flex; background: var(--carta); border: 1px solid var(--bordo); border-radius: 12px; box-shadow: var(--ombra); overflow: hidden;
 }
 .vista button { border: 0; background: none; color: var(--testo-2); padding: 8px 14px; min-height: 40px; font: 600 .9rem var(--sans); cursor: pointer; }

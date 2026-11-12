@@ -9,7 +9,7 @@ intestazione("mappa");
 
 const STILI = {
   chiaro: "https://tiles.openfreemap.org/styles/positron",
-  scuro: "https://tiles.openfreemap.org/styles/dark",
+  scuro: "https://tiles.openfreemap.org/styles/fiord",
 };
 const SICILIA = [[11.9, 35.4], [15.75, 38.85]];
 const SERVIZI = {
