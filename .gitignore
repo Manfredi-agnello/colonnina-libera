@@ -18,6 +18,8 @@ __pycache__/
 
 # Configurazione privata dell'hub (coordinate): mai nel repository pubblico
 config/hub.local.json
+# Chiavi di servizi esterni (es. Open Charge Map): mai nel repository
+config/*.local.json
 .env
 
 # Dati di prova copiati in locale per vedere il sito (su GitHub li aggiunge il workflow)

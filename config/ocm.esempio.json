@@ -1,0 +1,4 @@
+{
+  "_nota": "Copia questo file come config/ocm.local.json e metti la tua chiave. ocm.local.json è escluso da Git. Su GitHub la chiave va nel segreto OCM_CHIAVE.",
+  "chiave": "LA-TUA-CHIAVE-QUI"
+}
