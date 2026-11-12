@@ -108,5 +108,11 @@ eccesso.
   fascia con meno di 3 osservazioni è "dati insufficienti".
 - **Affidabilità degli operatori**: % del tempo osservato con prese fuori
   servizio, pesata sul tempo.
-- **Prezzi**: rilevati a mano (`prezzi/prezzi.csv`, con data e fonte) più le
-  tariffe che alcuni operatori pubblicano sulla PUN.
+- **Prezzi**: rilevati a mano (`prezzi/prezzi.csv`, con data e fonte, IVA inclusa) più le
+  tariffe che alcuni operatori pubblicano sulla PUN (circa 64 prese su 3.480 in Sicilia).
+  **Le tariffe PUN risultano senza IVA**: verifica del 12/11/2026 sui listini ufficiali.
+  Enel X Way dichiara alla PUN 0,54 (AC) e 0,67 (HPC) €/kWh; il suo listino a consumo
+  è 0,67 e 0,83, cioè gli stessi valori × 1,22. A2A dichiara 0,63 e 0,69; i listini
+  riportati da terzi sono 0,77 e 0,84 (= × 1,22). Il sito quindi mostra prezzo PUN × 1,22,
+  con il simbolo ≈ e il valore originale. Altri valori PUN (es. Enel X HPC 0,43) non
+  corrispondono a nessun listino: probabilmente vecchi o promozionali.

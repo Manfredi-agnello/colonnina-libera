@@ -3,6 +3,8 @@
 Controllo manuale (da lanciare dopo ogni modifica):
     python -m raccolta.prezzi
 
+I prezzi vanno scritti IVA INCLUSA (come li mostra l'app dell'operatore).
+
 Il file si può modificare con Excel: va bene sia il punto e virgola (;) sia la
 virgola (,) come separatore, e sia 0,59 sia 0.59 come numero.
 """

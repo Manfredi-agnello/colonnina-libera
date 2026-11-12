@@ -2,7 +2,7 @@
 import * as maplibregl from "../vendor/maplibre/maplibre-gl.mjs";
 import {
   intestazione, carica, tempoFa, nomeOperatore, ETICHETTA_STATO, CONNETTORI,
-  numero, euro, esc, temaAttuale,
+  numero, euro, conIva, esc, temaAttuale,
 } from "./comune.js";
 
 intestazione("mappa");
@@ -359,7 +359,7 @@ function htmlPrezzi(s) {
     }
   }
   for (const v of pubblicati.values()) {
-    righe.push(`<li><b>${euro(v.energy)}/kWh</b> ${v.tipo}${v.time ? ` + ${euro(v.time)}/min` : ""}${v.activation ? ` + ${euro(v.activation)} avvio` : ""} <small class="tenue">· pubblicato dall'operatore sulla PUN</small></li>`);
+    righe.push(`<li><b>≈ ${euro(conIva(v.energy))}/kWh</b> ${v.tipo}${v.time ? ` + ${euro(conIva(v.time))}/min` : ""}${v.activation ? ` + ${euro(conIva(v.activation))} avvio` : ""} <small class="tenue">· IVA inclusa, stimata dal prezzo pubblicato dall'operatore sulla PUN (${euro(v.energy)} senza IVA)</small></li>`);
   }
   const manuali = (stato.prezzi?.rilevati_a_mano || []).filter(r =>
     nomeOperatore(r.operatore) === s.nomeOp || r.operatore.toLowerCase() === (s.operatore || "").toLowerCase());

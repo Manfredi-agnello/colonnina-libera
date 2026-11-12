@@ -164,6 +164,11 @@ export const CONNETTORI = {
 
 export const numero = (v, cifre = 0) =>
   v == null || Number.isNaN(v) ? "–" : v.toLocaleString("it-IT", { maximumFractionDigits: cifre, minimumFractionDigits: cifre });
+// Le tariffe pubblicate sulla PUN risultano SENZA IVA: confrontate con i listini ufficiali
+// (Enel X Way, A2A) coincidono una volta aggiunto il 22%. Vedi METODO.md.
+export const IVA = 0.22;
+export const conIva = v => v == null ? null : Math.round(v * (1 + IVA) * 100) / 100;
+
 export const euro = v => v == null ? "–" :
   v.toLocaleString("it-IT", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
