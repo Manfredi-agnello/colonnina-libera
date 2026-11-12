@@ -90,7 +90,7 @@ const mappa = new maplibregl.Map({
 });
 mappa.addControl(new maplibregl.AttributionControl({
   compact: true,
-  customAttribution: 'Dati colonnine: <a href="https://www.piattaformaunicanazionale.it/">PUN</a> (MASE/GSE), rielaborati',
+  customAttribution: 'Dati colonnine: <a href="https://www.piattaformaunicanazionale.it/">PUN</a> (MASE/GSE), rielaborati, non ufficiali · <a href="note-legali.html">Note legali</a>',
 }), "bottom-right");
 mappa.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
 

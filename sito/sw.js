@@ -4,9 +4,9 @@
 // - mappa (OpenFreeMap): non viene toccata, ci pensa la cache normale del browser.
 // Cambia VERSIONE quando modifichi i file del sito, così i telefoni scaricano quelli nuovi.
 
-const VERSIONE = "v1";
+const VERSIONE = "v2";
 const BASE = [
-  "./", "index.html", "prezzi.html", "affidabilita.html", "info.html", "privacy.html",
+  "./", "index.html", "prezzi.html", "affidabilita.html", "info.html", "privacy.html", "note-legali.html",
   "css/stile.css", "css/mappa.css",
   "js/comune.js", "js/mappa.js", "js/prezzi.js", "js/affidabilita.js",
   "vendor/maplibre/maplibre-gl.mjs", "vendor/maplibre/maplibre-gl-worker.mjs",

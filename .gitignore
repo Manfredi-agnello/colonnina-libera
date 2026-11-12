@@ -22,3 +22,6 @@ config/hub.local.json
 
 # Dati di prova copiati in locale per vedere il sito (su GitHub li aggiunge il workflow)
 /sito/dati/
+
+# Documenti riservati (rischi legali, appunti personali): solo in locale
+/riservato/
