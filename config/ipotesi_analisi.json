@@ -1,0 +1,27 @@
+{
+  "_nota": "Ipotesi usate nelle analisi della zona hub. Puoi cambiarle: il report le mostra sempre accanto ai numeri. Spiegazione completa in METODO.md.",
+
+  "energia": {
+    "dc_frazione_potenza_nominale": 0.55,
+    "_dc": "In DC l'auto carica in media a circa il 55% della potenza massima della colonnina (la potenza cala man mano che la batteria si riempie).",
+    "ac_kw_auto": 7.4,
+    "_ac": "In AC la potenza la decide il caricatore dell'auto: molte caricano a 7,4 kW, alcune a 11. Si usa il valore minore tra questo e la potenza della presa.",
+    "kwh_massimi_per_sessione": 80,
+    "_max": "Tetto prudente: nessuna sessione può superare questa energia (circa una batteria grande intera)."
+  },
+
+  "classi_potenza": {
+    "_nota": "Classi usate per raggruppare le prese. Le prese AC sono tutte nella classe AC.",
+    "dc_hpc_da_kw": 100
+  },
+
+  "sessioni": {
+    "durata_minima_min": 3,
+    "durata_lunga_dc_ore": 3,
+    "durata_lunga_ac_ore": 14,
+    "buco_massimo_min": 15,
+    "_buco": "Se tra due letture passano più di questi minuti, il tempo in mezzo è 'non osservato' e le sessioni che lo attraversano sono 'incerte'."
+  },
+
+  "giro_completo_quota": 0.95
+}
