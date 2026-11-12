@@ -47,5 +47,15 @@ def scrivi_live(colonnine: list[dict], aggiornato: str, cartella: Path) -> dict:
 
 
 def scrivi_stato_raccolta(info: dict, cartella: Path) -> None:
-    """stato.json: usato dal badge "ultimo aggiornamento" del sito."""
-    _scrivi_json(cartella / "stato.json", info)
+    """stato.json: usato dal badge "ultimo aggiornamento" del sito.
+    "aggiornato" = ora dei dati mostrati sulla mappa."""
+    _scrivi_json(cartella / "stato.json", {**info, "ultimo_tentativo": info["aggiornato"],
+                                           "esito_ultimo_tentativo": "ok"})
+
+
+def aggiorna_tentativo(cartella: Path, ts: str, esito: str) -> None:
+    """Giro fallito: si annota il tentativo ma "aggiornato" resta quello dei dati vecchi."""
+    p = cartella / "stato.json"
+    info = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"aggiornato": None}
+    info.update({"ultimo_tentativo": ts, "esito_ultimo_tentativo": esito})
+    _scrivi_json(p, info)

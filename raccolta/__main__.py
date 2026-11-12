@@ -29,6 +29,7 @@ RADICE = Path(__file__).resolve().parent.parent
 AREA = json.loads((RADICE / "config" / "area.json").read_text(encoding="utf-8"))
 ORE_VALIDITA_ELENCO = 24
 MAX_RIGHE_REGISTRO = 500
+QUOTA_MINIMA_GIRO = 0.95   # sotto il 95% di colonnine lette il giro è "incompleto"
 
 log = logging.getLogger("raccolta")
 
@@ -103,17 +104,27 @@ def un_giro(args) -> bool:
         registra_errore(stato, f"impossibile ottenere l'elenco delle colonnine: {e}")
         return False
 
+    # Se c'è stata la ricerca dell'elenco (una volta al giorno), il giro vero e
+    # proprio riparte con un tempo massimo tutto suo.
+    pun.scadenza_giro = max(pun.scadenza_giro, time.time() + 300)
     istante = adesso()
     ts = istante.isoformat().replace("+00:00", "Z")
     record, errori = pun.dettagli(ids)
     for e in errori:
-        registra_errore(stato, f"gruppo di colonnine non letto: {e}")
+        registra_errore(stato, f"lettura incompleta: {e}")
     colonnine = [c for c in map(normalizza, record) if c]
-    if not colonnine:
-        registra_errore(stato, "nessuna colonnina letta in questo giro")
-        return False
+    completo = len(colonnine) >= QUOTA_MINIMA_GIRO * len(ids)
 
-    conteggi = sito.scrivi_live(colonnine, ts, cartella_sito)
+    if completo:
+        conteggi = sito.scrivi_live(colonnine, ts, cartella_sito)
+    else:
+        # Mappa a metà = peggio di una mappa vecchia di 5 minuti: si tiene quella
+        # precedente e il badge del sito mostrerà il ritardo.
+        registra_errore(stato, f"giro incompleto ({len(colonnine)}/{len(ids)}): "
+                               "il sito mantiene i dati del giro precedente")
+    if not colonnine:
+        sito.aggiorna_tentativo(cartella_sito, ts, "nessuna colonnina letta")
+        return False
     profili = Profili(stato / "profili.json.gz")
     profili.aggiungi(colonnine, istante)
     profili.salva()
@@ -134,6 +145,10 @@ def un_giro(args) -> bool:
                 hub_ok = False
 
     durata = round(time.time() - t0, 1)
+    if not completo:
+        sito.aggiorna_tentativo(cartella_sito, ts, f"giro incompleto ({len(colonnine)}/{len(ids)})")
+        log.info("giro %s incompleto: %s/%s colonnine, %.1fs", ts, len(colonnine), len(ids), durata)
+        return False
     sito.scrivi_stato_raccolta({
         "aggiornato": ts,
         "durata_s": durata,

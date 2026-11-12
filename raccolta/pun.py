@@ -42,6 +42,7 @@ PAUSA_TRA_RICHIESTE_S = 0.5
 ATTESE_TENTATIVI_S = (5, 30, 120)   # 3 nuovi tentativi, sempre più distanziati
 DIMENSIONE_PAGINA = 1000
 DIMENSIONE_GRUPPO = 100
+GRUPPI_FALLITI_DI_FILA_MAX = 2      # poi si smette: probabilmente manca la rete o la PUN è giù
 
 
 class ErrorePUN(Exception):
@@ -65,7 +66,10 @@ def _leggi_config_pun() -> tuple[str, str]:
 class SessionePUN:
     """Gestisce credenziali ospite, firma delle richieste e nuovi tentativi."""
 
-    def __init__(self):
+    def __init__(self, tempo_massimo_s: float = 360):
+        # Oltre questo tempo non si fanno più nuovi tentativi: un giro non deve
+        # mai sovrapporsi al successivo (ne parte uno ogni 5 minuti).
+        self.scadenza_giro = time.time() + tempo_massimo_s
         self.regione, self.pool_id = _leggi_config_pun()
         self._cognito = boto3.client("cognito-identity", region_name=self.regione,
                                      aws_access_key_id="", aws_secret_access_key="")
@@ -110,6 +114,8 @@ class SessionePUN:
                 ripetibile, errore = True, f"{type(e).__name__}: {e}"
             if not ripetibile or attesa is None:
                 raise ErrorePUN(f"{percorso}: {errore} (dopo {n + 1} tentativi)")
+            if time.time() + attesa > self.scadenza_giro:
+                raise ErrorePUN(f"{percorso}: {errore} (tempo massimo del giro superato)")
             self.tentativi_ripetuti += 1
             log.warning("%s: %s, nuovo tentativo tra %ss", percorso, errore, attesa)
             time.sleep(attesa)
@@ -129,14 +135,21 @@ class SessionePUN:
             time.sleep(PAUSA_TRA_RICHIESTE_S)
 
     def dettagli(self, id_evse: list[str]) -> tuple[list[dict], list[str]]:
-        """Dettagli completi a gruppi di 100. Ritorna (record, errori): un gruppo
-        che fallisce non blocca gli altri."""
-        record, errori = [], []
+        """Dettagli completi a gruppi di 100. Ritorna (record, errori).
+        Un gruppo isolato che fallisce non blocca gli altri; due di fila sì."""
+        record, errori, di_fila = [], [], 0
         for i in range(0, len(id_evse), DIMENSIONE_GRUPPO):
             try:
                 record.extend(self.post("/v1/chargepoints/group",
                                         id_evse[i:i + DIMENSIONE_GRUPPO]))
+                di_fila = 0
             except ErrorePUN as e:
                 errori.append(str(e))
+                di_fila += 1
+                if di_fila >= GRUPPI_FALLITI_DI_FILA_MAX or time.time() > self.scadenza_giro:
+                    rimasti = len(id_evse) - i - DIMENSIONE_GRUPPO
+                    if rimasti > 0:
+                        errori.append(f"giro interrotto, {rimasti} colonnine non richieste")
+                    break
             time.sleep(PAUSA_TRA_RICHIESTE_S)
         return record, errori
