@@ -25,6 +25,7 @@ def scrivi_live(colonnine: list[dict], aggiornato: str, cartella: Path) -> dict:
     for c in colonnine:
         chiave = c["sito"] or f'{c["lat"]:.5f},{c["lon"]:.5f}'
         s = siti.setdefault(chiave, {
+            "id": chiave,
             "lat": c["lat"], "lon": c["lon"],
             "operatore": c["operatore"], "indirizzo": c["indirizzo"],
             "citta": c["citta"], "provincia": c["provincia"],

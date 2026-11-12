@@ -19,3 +19,6 @@ __pycache__/
 # Configurazione privata dell'hub (coordinate): mai nel repository pubblico
 config/hub.local.json
 .env
+
+# Dati di prova copiati in locale per vedere il sito (su GitHub li aggiunge il workflow)
+/sito/dati/

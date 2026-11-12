@@ -2,22 +2,92 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Colonnine Sicilia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ricarica Sicilia · colonnine libere adesso</title>
+  <meta name="description" content="Mappa delle colonnine di ricarica per auto elettriche in Sicilia: libere, occupate o fuori servizio, aggiornata ogni 5 minuti.">
+  <meta name="theme-color" content="#0b4f7c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icone/icona.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icone/icona-180.png">
+  <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css">
+  <link rel="stylesheet" href="css/stile.css">
+  <link rel="stylesheet" href="css/mappa.css">
 </head>
-<body>
-  <!-- Pagina provvisoria: il sito vero arriva in Fase 3. -->
-  <h1>Colonnine di ricarica in Sicilia</h1>
-  <p id="stato">Caricamento…</p>
-  <script>
-    fetch('dati/stato.json', { cache: 'no-store' })
-      .then(r => r.json())
-      .then(s => {
-        const minuti = Math.round((Date.now() - Date.parse(s.aggiornato)) / 60000);
-        document.getElementById('stato').textContent =
-          `Ultimo aggiornamento: ${minuti} minuti fa — ${s.colonnine_lette} punti di ricarica in ${s.siti} siti.`;
-      })
-      .catch(() => { document.getElementById('stato').textContent = 'Dati non disponibili.'; });
-  </script>
+<body class="con-mappa">
+  <a class="salta" href="#elenco-titolo">Vai all'elenco delle colonnine</a>
+  <header id="testata"></header>
+
+  <main id="contenuto" class="schermo">
+    <h1 class="sr-only">Colonnine di ricarica in Sicilia</h1>
+
+    <div class="strumenti" role="group" aria-label="Filtri">
+      <button type="button" class="chip" id="f-libere" aria-pressed="false">Solo libere</button>
+      <button type="button" class="chip" id="f-rapide" aria-pressed="false">Solo rapide DC</button>
+      <button type="button" class="chip chip-filtri" id="apri-filtri" aria-expanded="false" aria-controls="pannello-filtri">
+        Filtri <span id="n-filtri" class="conta" hidden></span>
+      </button>
+    </div>
+
+    <div class="pannello-filtri" id="pannello-filtri" hidden>
+      <div class="riga-filtri">
+        <label for="f-potenza">Potenza minima</label>
+        <select id="f-potenza">
+          <option value="0">Qualsiasi</option>
+          <option value="11">11 kW</option>
+          <option value="22">22 kW</option>
+          <option value="50">50 kW</option>
+          <option value="100">100 kW</option>
+          <option value="150">150 kW</option>
+        </select>
+      </div>
+      <div class="riga-filtri">
+        <label for="f-presa">Tipo di presa</label>
+        <select id="f-presa">
+          <option value="">Qualsiasi</option>
+          <option value="IEC_62196_T2_COMBO">CCS2 (rapida)</option>
+          <option value="IEC_62196_T2">Tipo 2</option>
+          <option value="CHADEMO">CHAdeMO</option>
+        </select>
+      </div>
+      <div class="riga-filtri">
+        <label for="f-operatore">Operatore</label>
+        <select id="f-operatore"><option value="">Tutti</option></select>
+      </div>
+      <div class="riga-filtri azioni">
+        <button type="button" class="bottone" id="azzera-filtri">Azzera</button>
+        <button type="button" class="bottone primario" id="chiudi-filtri">Mostra risultati</button>
+      </div>
+    </div>
+
+    <div class="vista" role="group" aria-label="Modo di visualizzazione">
+      <button type="button" id="v-mappa" aria-pressed="true">Mappa</button>
+      <button type="button" id="v-elenco" aria-pressed="false">Elenco</button>
+    </div>
+
+    <div id="mappa" role="region" aria-label="Mappa delle colonnine. Per usare la tastiera passa alla vista Elenco."></div>
+
+    <section id="elenco" class="elenco" aria-labelledby="elenco-titolo" hidden>
+      <h2 id="elenco-titolo">Colonnine</h2>
+      <p id="elenco-info" class="tenue"></p>
+      <ul id="elenco-lista"></ul>
+    </section>
+
+    <button type="button" class="bottone vicino" id="vicino">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/></svg>
+      Vicino a me
+    </button>
+    <p class="messaggio" id="messaggio" role="status" hidden></p>
+
+    <div class="legenda" aria-hidden="true">
+      <span><i class="pallino libera">✓</i>Libera</span>
+      <span><i class="pallino occupata">●</i>Occupata</span>
+      <span><i class="pallino guasta">✕</i>Fuori servizio</span>
+      <span><i class="pallino sconosciuto">?</i>Non in tempo reale</span>
+    </div>
+
+    <aside id="dettaglio" class="dettaglio" aria-labelledby="dettaglio-titolo" hidden tabindex="-1"></aside>
+  </main>
+
+  <script type="module" src="js/mappa.js"></script>
 </body>
 </html>
