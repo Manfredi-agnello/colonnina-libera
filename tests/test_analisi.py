@@ -112,8 +112,10 @@ class TestAnalisi(unittest.TestCase):
         s = self.s.loc["HPC150"]
         self.assertTrue(s["incerta"])
         self.assertEqual(s["classe"], "DC da 100 kW in su")
-        # 10:47:30 -> 11:42:30 = 55 minuti
-        self.assertAlmostEqual(s["durata_min"], 55.0)
+        # 10:47:30 -> 11:42:30 = 55 minuti, meno il buco tra le letture 11:00 e 11:30
+        # (30 minuti non osservati) = 25 minuti: valore minimo, prudente
+        self.assertAlmostEqual(s["durata_min"], 25.0)
+        self.assertTrue(s["valida"])
 
     def test_sessione_tagliata_ai_bordi_e_incerta_e_con_tetto_kwh(self):
         s = self.s.loc["LUNGA"]
@@ -128,9 +130,9 @@ class TestAnalisi(unittest.TestCase):
         t = self.tab.set_index(["id", "ora"])
         # 10-11 UTC = ore 11 italiane: DC50 occupata dalle 10:02:30 alle 10:42:30 = 40 minuti
         self.assertEqual(t.loc[("DC50", 11), "min_occupata"], 40)
-        # 11-12 UTC = ore 12 italiane: buco 11:02:30-11:27:30 (letture 11:00 e 11:30 a 30 min > 15)
-        #   -> l'intervallo 11:00-11:30 è tutto non osservato; osservati 30 minuti (11:30-11:55)
-        #      più l'ultimo tratto fino a 11:55 (dopo l'ultima lettura: non osservato)
+        # 11-12 UTC = ore 12 italiane. Letture alle 11:00 e alle 11:30: distano 30 minuti
+        # (più di 15), quindi 11:00-11:30 è non osservato. 11:30-11:55 è osservato
+        # (25 minuti); dopo l'ultima lettura (11:55) non c'è niente.
         self.assertEqual(t.loc[("GUASTA", 12), "min_osservati"], 25)
         self.assertEqual(t.loc[("GUASTA", 12), "min_guasta"], 25)
 
@@ -141,6 +143,16 @@ class TestAnalisi(unittest.TestCase):
         self.assertEqual(p.loc["GUASTA", "guasto_pct"], 100.0)
         self.assertEqual(p.loc["GUASTA", "occupazione_pct"], 0.0)
         self.assertEqual(p.loc["DC50", "guasto_pct"], 0.0)
+
+    def test_kwh_da_occupazione(self):
+        op = calcoli.operatori_con_occupazione(self.d.letture, self.d.anagrafica)
+        df = calcoli.arricchisci(self.tab, self.d.anagrafica, IPOTESI, op)
+        k = calcoli.kwh_da_occupazione(df, IPOTESI["energia"], ["id"]).set_index("id")
+        # DC50: 40 minuti occupati x 27,5 kW effettivi = 18,33 kWh, come la sessione
+        self.assertAlmostEqual(k.loc["DC50", "kwh_osservati"], 18.33, places=2)
+        # osservati 90 minuti su 120 (buco di 30) -> estrapolato x 120/90... ma il primo
+        # e l'ultimo tratto sono parziali: si verifica solo che estrapolato >= osservato
+        self.assertGreaterEqual(k.loc["DC50", "kwh_estrapolati"], k.loc["DC50", "kwh_osservati"])
 
 
 if __name__ == "__main__":

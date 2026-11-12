@@ -13,6 +13,8 @@ originale/
 stato/
 out/
 hub-dati/
+hub-storico/
+report/
 
 # Configurazione privata dell'hub (coordinate): mai nel repository pubblico
 config/hub.local.json

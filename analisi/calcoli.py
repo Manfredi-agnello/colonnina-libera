@@ -104,21 +104,29 @@ def sessioni(letture: pd.DataFrame, anagrafica: pd.DataFrame, ipotesi: dict,
                 fine = t[j] + (t[j + 1] - t[j]) / 2
             else:
                 fine, incerta = t[j], True
-            if j > i and (np.diff(t[i:j + 1]) > buco).any():
+            # I buchi dentro la sessione non contano: la durata è solo il tempo
+            # osservato, quindi per le sessioni incerte è un valore MINIMO.
+            salti = np.diff(t[i:j + 1])
+            grandi = salti[salti > buco]
+            non_osservato = pd.Timedelta(grandi.sum()) if len(grandi) else pd.Timedelta(0)
+            if len(grandi):
                 incerta = True
-            out.append((id_, pd.Timestamp(inizio), pd.Timestamp(fine), incerta))
+            durata = (pd.Timedelta(fine - inizio) - non_osservato) / pd.Timedelta(minutes=1)
+            out.append((id_, pd.Timestamp(inizio), pd.Timestamp(fine), incerta, durata))
     if not out:
         return pd.DataFrame()
-    s = pd.DataFrame(out, columns=["id", "inizio", "fine", "incerta"])
+    s = pd.DataFrame(out, columns=["id", "inizio", "fine", "incerta", "durata_min"])
     s["inizio"] = s["inizio"].dt.tz_localize("UTC") if s["inizio"].dt.tz is None else s["inizio"]
     s["fine"] = s["fine"].dt.tz_localize("UTC") if s["fine"].dt.tz is None else s["fine"]
     s = s[(s["inizio"] >= dal) & (s["inizio"] < al)].copy()
-    s["durata_min"] = ((s["fine"] - s["inizio"]).dt.total_seconds() / 60).round(1)
+    s["durata_min"] = s["durata_min"].round(1)
 
     s = s.join(attr[["operatore", "corrente", "kw_max"]], on="id")
     soglia = ipotesi["classi_potenza"]["dc_hpc_da_kw"]
     s["classe"] = [classe_potenza(c, k, soglia) for c, k in zip(s["corrente"], s["kw_max"])]
-    s["breve"] = s["durata_min"] < p["durata_minima_min"]
+    # "breve" solo per le sessioni certe: per le incerte la durata è un minimo,
+    # e scartarle farebbe sparire ricariche vere viste in una sola lettura.
+    s["breve"] = ~s["incerta"] & (s["durata_min"] < p["durata_minima_min"])
     lunga_ore = np.where(s["corrente"] == "DC", p["durata_lunga_dc_ore"], p["durata_lunga_ac_ore"])
     s["lunga"] = s["durata_min"] > lunga_ore * 60
     s["valida"] = ~s["breve"]
@@ -162,6 +170,21 @@ def arricchisci(tab: pd.DataFrame, anagrafica: pd.DataFrame, ipotesi: dict,
     a["occupazione_misurabile"] = a["tempo_reale"].fillna(False).astype(bool) & \
         a["operatore"].isin(op_occupazione)
     return tab.merge(a, on="id", how="left")
+
+
+def kwh_da_occupazione(df: pd.DataFrame, energia: dict, per: list[str]) -> pd.DataFrame:
+    """Seconda stima dell'energia, che regge i buchi della raccolta.
+    Per ogni presa: kWh nel tempo osservato = minuti occupati × potenza effettiva;
+    poi si riporta all'intero periodo dividendo per la quota di tempo osservato.
+    Esempio: 10 kWh in 6 ore osservate su 24 -> 40 kWh nella giornata."""
+    d = df[df["occupazione_misurabile"]].copy()
+    kw = [potenza_effettiva_kw(c, k, energia) for c, k in zip(d["corrente"], d["kw_max"])]
+    d["kwh_osservati"] = d["min_occupata"] / 60 * pd.Series(kw, index=d.index)
+    d["min_totali"] = 60
+    chiavi = per + ([] if "id" in per else ["id"])
+    g = d.groupby(chiavi, dropna=False)[["kwh_osservati", "min_osservati", "min_totali"]].sum()
+    g["kwh_estrapolati"] = g["kwh_osservati"] * g["min_totali"] / g["min_osservati"].where(g["min_osservati"] > 0)
+    return g.groupby(level=per, dropna=False)[["kwh_osservati", "kwh_estrapolati"]].sum().reset_index()
 
 
 def percentuali(df: pd.DataFrame, per: list[str]) -> pd.DataFrame:
