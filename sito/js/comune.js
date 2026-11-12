@@ -2,6 +2,8 @@
 // tema chiaro/scuro, badge "ultimo aggiornamento", nomi degli operatori.
 
 export const NOME_SITO = "Ricarica Sicilia";   // nome provvisorio: si sceglie in Fase 5
+// Titolare e contatto mostrati in Privacy, Note legali e Info. L'email è quella dedicata al sito.
+export const CONTATTO = { nome: "Manfredi Agnello", email: "" };   // email: da inserire in Fase 5
 
 const ICONE = {
   logo: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--mare)"/><path d="M4 22c4-3 8 3 12 0s8 3 12 0" fill="none" stroke="var(--su-mare)" stroke-width="2" stroke-linecap="round" opacity=".55"/><path d="M17.5 5 10 17h5.5L14 27l8-13h-5.5z" fill="var(--su-mare)"/></svg>',
@@ -74,6 +76,25 @@ export function intestazione(attiva) {
   });
   aggiornaDistintivo();
   setInterval(aggiornaDistintivo, 60_000);
+  riempiContatti();
+}
+
+function riempiContatti() {
+  const mail = CONTATTO.email
+    ? `<a href="mailto:${esc(CONTATTO.email)}">${esc(CONTATTO.email)}</a>`
+    : `<span class="tenue">(indirizzo email in arrivo)</span>`;
+  const titolare = document.getElementById("titolare");
+  if (titolare) {
+    titolare.className = "";
+    titolare.innerHTML = `Il sito è curato da <b>${esc(CONTATTO.nome)}</b>, a titolo personale. Contatto: ${mail}.`;
+  }
+  const legale = document.getElementById("contatto-legale");
+  if (legale) {
+    legale.className = "";
+    legale.innerHTML = `${esc(CONTATTO.nome)} · ${mail}. Per segnalazioni sui dati o richieste dei titolari dei dati e dei marchi.`;
+  }
+  const info = document.getElementById("contatti");
+  if (info) info.innerHTML = `Hai trovato un errore o una colonnina sbagliata? Scrivi a ${mail}.`;
 }
 
 // ── dati ────────────────────────────────────────────────────────────────
