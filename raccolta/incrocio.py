@@ -51,7 +51,7 @@ def codice_operatore(sito: dict) -> str | None:
 def parole_operatore(nome: str | None) -> set[str]:
     if not nome:
         return set()
-    n = nome.lower().replace("&", " ")
+    n = re.sub(r"\([^)]*\)", " ", nome.lower()).replace("&", " ")   # toglie "(Italy)", "(IT)"
     n = re.sub(r"\be[\.\-]?(mobility|moving)\b", " ", n)
     compatto = re.sub(r"[^a-z0-9]", "", n)
     if compatto in SINONIMI:
