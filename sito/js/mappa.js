@@ -2,7 +2,7 @@
 import * as maplibregl from "../vendor/maplibre/maplibre-gl.mjs";
 import {
   intestazione, carica, tempoFa, nomeOperatore, ETICHETTA_STATO, CONNETTORI,
-  numero, euro, conIva, esc, temaAttuale,
+  numero, euro, conIva, esc, temaAttuale, CONTATTO,
 } from "./comune.js";
 
 intestazione("mappa");
@@ -462,6 +462,38 @@ function htmlPreseFuori(s) {
       `<li>${n} × ${esc(CONNETTORI[k] || k)}</li>`).join("")}</ul>` : ""}`;
 }
 
+// ── segnala un problema ─────────────────────────────────────────────────
+// Apre l'app di posta con un messaggio già compilato: nessun server, nessun dato salvato da noi.
+
+function htmlSegnala(s) {
+  if (!CONTATTO.email) {
+    return `<p><small class="tenue">Hai notato un errore su questa colonnina? A breve potrai segnalarlo da qui.</small></p>`;
+  }
+  const pagina = `${location.origin}${location.pathname}#c=${encodeURIComponent(s.id)}`;
+  const corpo = [
+    "Ciao, segnalo un problema su questa colonnina:",
+    "",
+    `${s.nomeOp} - ${s.indirizzo || ""}${s.citta ? `, ${s.citta}` : ""}`,
+    `Codice: ${s.id}`,
+    `Scheda: ${pagina}`,
+    "",
+    "Cosa non va? (cancella le voci che non c'entrano)",
+    "- non funziona / è guasta",
+    "- lo stato sul sito è sbagliato",
+    "- la posizione sulla mappa è sbagliata",
+    "- non esiste più",
+    "- il prezzo è diverso",
+    "- altro:",
+    "",
+    "Quando l'hai visto (giorno e ora, circa):",
+  ].join("\n");
+  const href = `mailto:${CONTATTO.email}?subject=${encodeURIComponent(`Segnalazione colonnina: ${s.indirizzo || s.id}`)}&body=${encodeURIComponent(corpo)}`;
+  return `<p><a class="bottone" href="${esc(href)}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V4h11l-1 4h6v9h-9l1-4H4"/></svg>
+    Segnala un problema</a>
+    <small class="tenue" style="display:block;margin-top:4px">Si apre la tua app di posta con il messaggio già pronto.</small></p>`;
+}
+
 function link(s) {
   const d = `${s.lat},${s.lon}`;
   return {
@@ -520,6 +552,7 @@ function apri(id, { aggiornamento = false } = {}) {
     ${htmlPrezzi(s)}`}
     ${servizi.length || extra.length ? `<h3>Sul posto</h3><ul class="etichette">${[...extra, ...servizi].map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
     ${htmlAltreFonti(s)}
+    ${htmlSegnala(s)}
     <p><small class="tenue">${s.fuori ? "Dati segnalati da volontari, non ufficiali" : "Dati PUN (MASE/GSE) rielaborati, non ufficiali"}: controlla sempre sul posto o nell'app dell'operatore.</small></p>`;
   $("dettaglio").hidden = false;
   if (!aggiornamento) $("dettaglio").focus();
