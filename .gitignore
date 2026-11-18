@@ -27,3 +27,6 @@ config/*.local.json
 
 # Documenti riservati (rischi legali, appunti personali): solo in locale
 /riservato/
+
+# Impostazioni locali degli strumenti di sviluppo
+/.claude/
