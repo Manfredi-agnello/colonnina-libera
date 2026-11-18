@@ -27,9 +27,18 @@ const $ = id => document.getElementById(id);
 const stato = {
   siti: [], perId: new Map(), profili: {}, prezzi: null, aggiornato: null,
   osm: null, ocm: null, fuori: [],   // altre fonti (file separati, ognuno con la sua licenza)
-  filtri: { libere: false, rapide: false, potenza: 0, presa: "", operatore: "", fuori: false },
+  filtri: { libere: false, rapide: false, potenza: 0, presa: "", operatore: "", fuori: false, preferite: false },
   vista: "mappa", io: null, aperto: null,
 };
+
+// ── preferite (salvate solo nel browser di chi le sceglie) ───────────────
+
+const preferite = new Set((() => {
+  try { return JSON.parse(localStorage.getItem("preferite") || "[]"); } catch { return []; }
+})());
+function salvaPreferite() {
+  try { localStorage.setItem("preferite", JSON.stringify([...preferite])); } catch { /* navigazione privata */ }
+}
 
 // ── dati ────────────────────────────────────────────────────────────────
 
@@ -79,6 +88,7 @@ function preparaFuori() {
 
 function passaFiltri(s) {
   const f = stato.filtri;
+  if (f.preferite) return preferite.has(s.id);   // le preferite si vedono sempre, anche con altri filtri
   if (s.fuori && !f.fuori) return false;
   if (f.libere && s.stato !== "libera") return false;
   if (f.rapide && !s.dc) return false;
@@ -216,6 +226,17 @@ function interruttore(id, chiave) {
   });
 }
 interruttore("f-libere", "libere");
+interruttore("f-preferite", "preferite");
+$("f-preferite").addEventListener("click", () => {
+  if (!stato.filtri.preferite) return;
+  if (!preferite.size) return messaggio("Non hai ancora preferite: apri una colonnina e tocca ☆ Salva.");
+  const visibili = stato.siti.filter(s => preferite.has(s.id));
+  if (stato.vista === "mappa" && visibili.length) {
+    const lon = visibili.map(s => s.lon), lat = visibili.map(s => s.lat);
+    mappa.fitBounds([[Math.min(...lon), Math.min(...lat)], [Math.max(...lon), Math.max(...lat)]],
+      { padding: 80, maxZoom: 14 });
+  }
+});
 interruttore("f-rapide", "rapide");
 
 function mostraPannello(si) {
@@ -260,11 +281,12 @@ function disegnaElenco() {
     .sort((a, b) => a.d - b.d);
   const mostrati = tutti.slice(0, 50);
   $("elenco-info").textContent =
-    `${mostrati.length} più vicine ${stato.io ? "a te" : "al centro della mappa"}, su ${tutti.length} che rispettano i filtri.`;
+    `${mostrati.length} ${mostrati.length === 1 ? "più vicina" : "più vicine"} ${stato.io ? "a te" : "al centro della mappa"}, ` +
+    `su ${tutti.length} che ${tutti.length === 1 ? "rispetta" : "rispettano"} i filtri.`;
   $("elenco-lista").innerHTML = mostrati.map(({ s, d }) => `
     <li><button type="button" class="voce" data-id="${esc(s.id)}">
       <i class="pallino ${s.stato}" aria-hidden="true">${simbolo(s.stato)}</i>
-      <span><b>${esc(s.indirizzo || "Indirizzo non indicato")}</b>
+      <span><b>${preferite.has(s.id) ? '<span aria-label="preferita">★</span> ' : ""}${esc(s.indirizzo || "Indirizzo non indicato")}</b>
         <small class="tenue">${s.fuori ? "Non nella PUN · " : ""}${esc(s.citta || "")}${s.citta ? " · " : ""}${esc(s.nomeOp)}${s.fuori ? "" : ` · ${s.dc ? "DC" : "AC"} ${numero(s.kw)} kW`}</small>
         <span class="sr-only">${riassunto(s)}</span></span>
       <span class="dist">${d < 10 ? numero(d, 1) : numero(d)} km</span>
@@ -532,6 +554,7 @@ function apri(id, { aggiornamento = false } = {}) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 21 3l-8 18-2-8z"/></svg>
         Portami qui
       </button>
+      <button type="button" class="bottone" id="salva" aria-pressed="${preferite.has(s.id)}">${preferite.has(s.id) ? "★ Salvata" : "☆ Salva"}</button>
       <button type="button" class="bottone" id="condividi">Condividi</button>
     </div>
     <div class="scelta-navigatore" id="navigatori" hidden>
@@ -562,6 +585,15 @@ function apri(id, { aggiornamento = false } = {}) {
     const nav = $("navigatori");
     nav.hidden = !nav.hidden;
     e.currentTarget.setAttribute("aria-expanded", String(!nav.hidden));
+  });
+  $("salva").addEventListener("click", e => {
+    if (preferite.has(s.id)) preferite.delete(s.id); else preferite.add(s.id);
+    salvaPreferite();
+    const si = preferite.has(s.id);
+    e.currentTarget.setAttribute("aria-pressed", String(si));
+    e.currentTarget.textContent = si ? "★ Salvata" : "☆ Salva";
+    messaggio(si ? "Aggiunta alle preferite: la ritrovi con il pulsante ★ Preferite." : "Tolta dalle preferite.");
+    if (stato.filtri.preferite) aggiornaMappa();
   });
   $("condividi").addEventListener("click", async () => {
     const url = location.href;
