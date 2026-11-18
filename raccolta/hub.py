@@ -82,7 +82,9 @@ def aggiorna(colonnine: list[dict], attese_ids: set[str], ts: str,
         p_foto.parent.mkdir(parents=True, exist_ok=True)
         df = pd.DataFrame(vicine)
         df.insert(0, "ts", ts)
-        for col in ("connettori", "servizi", "tariffe_pun"):
+        for col in ("connettori", "servizi", "tariffe_pun", "orari"):
+            if col not in df:
+                continue
             df[col] = df[col].map(lambda v: json.dumps(v, ensure_ascii=False) if v else None)
         df["distanza_km"] = [round(distanza_km(cfg["lat"], cfg["lon"], la, lo), 3)
                              for la, lo in zip(df.lat, df.lon)]

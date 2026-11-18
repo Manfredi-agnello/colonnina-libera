@@ -56,6 +56,15 @@ sito PUN viene abbinato al punto più adatto delle altre fonti:
 - Licenze: OSM (ODbL) e OCM (CC BY 4.0) stanno in **due file separati**
   (`osm.json`, `ocm.json`), per non mescolare dati con licenze diverse.
 
+### Orari e filtro "Aperte adesso"
+
+- Gli orari vengono dalla PUN (dichiarati dall'operatore: `opening_times`): "24 ore su 24" per circa il
+  95% dei siti, orari settimanali per circa 67 siti, nessuna indicazione per pochi altri.
+- "Aperte adesso" nasconde solo i siti **chiusi in questo momento** secondo quegli orari, in ora italiana;
+  i siti senza orari restano visibili. Le chiusure straordinarie non sono considerate.
+- Verifica del 18/11/2026: mercoledì 21:30 risultano chiusi 59 siti, domenica 12:00 21 siti (stesso
+  risultato tra codice del sito e calcolo indipendente).
+
 ### Stima di tempo e costo (scheda della colonnina)
 
 Stima indicativa per chi guida, non usata nelle analisi:

@@ -31,6 +31,7 @@ def scrivi_live(colonnine: list[dict], aggiornato: str, cartella: Path) -> dict:
             "citta": c["citta"], "provincia": c["provincia"],
             "parcheggio": c["parcheggio"], "servizi": c["servizi"],
             "h24": c["h24"], "punti": [],
+            **({"orari": c["orari"]} if c.get("orari") else {}),
         })
         s["punti"].append({
             "id": c["id"],

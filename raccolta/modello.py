@@ -49,6 +49,23 @@ def _tariffe(rec: dict) -> dict | None:
     return out or None
 
 
+def _orari(orari: dict) -> list | None:
+    """Orari settimanali dichiarati dall'operatore: [[giorno 1-7 (1 = lunedì), "08:30", "20:00"], ...].
+    None se aperta sempre o se gli orari non sono indicati."""
+    if orari.get("twentyfourseven"):
+        return None
+    righe = []
+    for r in orari.get("regular_hours") or []:
+        try:
+            giorno = int(r.get("weekday"))
+        except (TypeError, ValueError):
+            continue
+        inizio, fine = _testo(r.get("period_begin")), _testo(r.get("period_end"))
+        if 1 <= giorno <= 7 and inizio and fine:
+            righe.append([giorno, inizio[:5], fine[:5]])
+    return sorted(righe) or None
+
+
 def normalizza(rec: dict) -> dict | None:
     """Record PUN -> dizionario. None se mancano id o coordinate."""
     loc = rec.get("location") or {}
@@ -86,6 +103,7 @@ def normalizza(rec: dict) -> dict | None:
         "parcheggio": _testo(loc.get("parking_type")),
         "servizi": list(loc.get("facilities") or []),
         "h24": bool(orari.get("twentyfourseven", False)),
+        "orari": _orari(orari),
         "connettori": connettori,
         "kw_max": max(potenze) if potenze else None,
         "corrente": "DC" if "DC" in "".join(correnti) else ("AC" if correnti - {""} else None),
