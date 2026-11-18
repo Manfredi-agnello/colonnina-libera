@@ -118,7 +118,9 @@ body.con-mappa { height: 100dvh; overflow: hidden; display: flex; flex-direction
 .chiudi { flex: none; }
 
 .maplibregl-ctrl-attrib { font-size: 11px; }
-.maplibregl-ctrl-bottom-right { bottom: var(--barra); }
+/* Zoom e crediti sopra "Vicino a me" e sopra la legenda: aperti non coprono niente. */
+.maplibregl-ctrl-bottom-right { bottom: calc(var(--barra) + 140px); }
+.maplibregl-ctrl-attrib.maplibregl-compact-show { max-width: calc(100vw - 24px); }
 .marcatore-io { width: 18px; height: 18px; border-radius: 50%; background: #2a7de1; border: 3px solid #fff; box-shadow: 0 0 0 6px rgb(42 125 225 / 25%); }
 
 /* Filtro "non presenti nella PUN" */
