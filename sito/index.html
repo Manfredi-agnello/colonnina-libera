@@ -53,6 +53,12 @@
         <label for="f-operatore">Operatore</label>
         <select id="f-operatore"><option value="">Tutti</option></select>
       </div>
+      <div class="riga-filtri spunta">
+        <input type="checkbox" id="f-fuori">
+        <label for="f-fuori">Mostra anche le colonnine <b>non presenti nella PUN</b>
+          <small class="tenue">Segnalate sia da OpenStreetMap sia da Open Charge Map, ma non verificate:
+            potrebbero non esistere più.</small></label>
+      </div>
       <div class="riga-filtri azioni">
         <button type="button" class="bottone" id="azzera-filtri">Azzera</button>
         <button type="button" class="bottone primario" id="chiudi-filtri">Mostra risultati</button>
@@ -83,6 +89,7 @@
       <span><i class="pallino occupata">●</i>Occupata</span>
       <span><i class="pallino guasta">✕</i>Fuori servizio</span>
       <span><i class="pallino sconosciuto">?</i>Non in tempo reale</span>
+      <span id="legenda-fuori" hidden><i class="pallino fuori">!</i>Non nella PUN</span>
     </div>
 
     <aside id="dettaglio" class="dettaglio" aria-labelledby="dettaglio-titolo" hidden tabindex="-1"></aside>

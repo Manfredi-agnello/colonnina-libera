@@ -26,7 +26,8 @@ const PARCHEGGIO = {
 const $ = id => document.getElementById(id);
 const stato = {
   siti: [], perId: new Map(), profili: {}, prezzi: null, aggiornato: null,
-  filtri: { libere: false, rapide: false, potenza: 0, presa: "", operatore: "" },
+  osm: null, ocm: null, fuori: [],   // altre fonti (file separati, ognuno con la sua licenza)
+  filtri: { libere: false, rapide: false, potenza: 0, presa: "", operatore: "", fuori: false },
   vista: "mappa", io: null, aperto: null,
 };
 
@@ -42,7 +43,7 @@ function statoSito(punti) {
 
 function prepara(live) {
   stato.aggiornato = live.aggiornato;
-  stato.siti = live.siti.map(s => {
+  const pun = live.siti.map(s => {
     const punti = s.punti.filter(p => p.stato !== "rimossa");
     const prese = new Set(punti.flatMap(p => p.connettori.map(c => c[0])));
     return {
@@ -54,11 +55,31 @@ function prepara(live) {
       prese, nomeOp: nomeOperatore(s.operatore),
     };
   });
+  stato.siti = [...pun, ...stato.fuori];
   stato.perId = new Map(stato.siti.map(s => [s.id, s]));
+}
+
+// Colonnine NON presenti nella PUN, segnalate da entrambe le altre fonti.
+function preparaFuori() {
+  const ocm = new Map((stato.ocm?.fuori_pun || []).map(c => [c.chiave, c]));
+  stato.fuori = (stato.osm?.fuori_pun || []).filter(o => ocm.has(o.chiave)).map(o => {
+    const m = ocm.get(o.chiave);
+    const prese = { ...(m.prese || {}), ...(o.prese || {}) };
+    const op = o.operatore || m.operatore;
+    return {
+      id: o.chiave, fuori: true, lat: o.lat, lon: o.lon, osmDati: o, ocmDati: m,
+      operatore: op, nomeOp: op ? nomeOperatore(op) : "Operatore non indicato",
+      indirizzo: o.name && o.name !== op ? o.name : "Colonnina non presente nella PUN",
+      citta: "", punti: [], stato: "fuori", libere: 0, kw: 0,
+      dc: "IEC_62196_T2_COMBO" in prese || "CHADEMO" in prese,
+      prese: new Set(Object.keys(prese)), conteggioPrese: prese,
+    };
+  });
 }
 
 function passaFiltri(s) {
   const f = stato.filtri;
+  if (s.fuori && !f.fuori) return false;
   if (f.libere && s.stato !== "libera") return false;
   if (f.rapide && !s.dc) return false;
   if (f.potenza && s.kw < f.potenza) return false;
@@ -103,19 +124,21 @@ function disegnaIcone() {
   const simboli = { libera: "✓", occupata: "●", guasta: "✕", sconosciuto: "?" };
   const tinte = { libera: "libera", occupata: "occupata", guasta: "guasta", sconosciuto: "ignoto" };
   const r = window.devicePixelRatio > 1 ? 2 : 1;
+  simboli.fuori = "!";
   for (const [st, simbolo] of Object.entries(simboli)) {
+    const vuota = st === "fuori";   // cerchio vuoto: non sappiamo nemmeno se esiste ancora
     const lato = 30 * r;
     const c = document.createElement("canvas");
     c.width = c.height = lato;
     const ctx = c.getContext("2d");
     ctx.beginPath();
     ctx.arc(lato / 2, lato / 2, lato / 2 - 2 * r, 0, Math.PI * 2);
-    ctx.fillStyle = colore(tinte[st]);
+    ctx.fillStyle = vuota ? colore("carta") : colore(tinte[st]);
     ctx.fill();
     ctx.lineWidth = 2.5 * r;
-    ctx.strokeStyle = colore("carta");
+    ctx.strokeStyle = vuota ? colore("ignoto") : colore("carta");
     ctx.stroke();
-    ctx.fillStyle = colore("su-mare");
+    ctx.fillStyle = vuota ? colore("ignoto") : colore("su-mare");
     ctx.font = `700 ${(st === "occupata" ? 11 : 15) * r}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -152,7 +175,7 @@ function aggiungiLivelli() {
     layout: {
       "icon-image": ["concat", "st-", ["get", "stato"]],
       "icon-allow-overlap": true,
-      "symbol-sort-key": ["match", ["get", "stato"], "libera", 3, "occupata", 2, "guasta", 1, 0],
+      "symbol-sort-key": ["match", ["get", "stato"], "libera", 3, "occupata", 2, "guasta", 1, "fuori", -1, 0],
     },
   });
 }
@@ -177,7 +200,8 @@ mappa.on("moveend", () => { if (stato.vista === "elenco") disegnaElenco(); });
 function aggiornaMappa() {
   mappa.getSource("siti")?.setData(geojson());
   if (stato.vista === "elenco") disegnaElenco();
-  const attivi = ["potenza", "presa", "operatore"].filter(k => stato.filtri[k]).length;
+  const attivi = ["potenza", "presa", "operatore", "fuori"].filter(k => stato.filtri[k]).length;
+  $("legenda-fuori").hidden = !stato.filtri.fuori;
   $("n-filtri").hidden = !attivi;
   $("n-filtri").textContent = attivi;
 }
@@ -204,15 +228,16 @@ $("chiudi-filtri").addEventListener("click", () => { mostraPannello(false); $("a
 $("f-potenza").addEventListener("change", e => { stato.filtri.potenza = +e.target.value; aggiornaMappa(); });
 $("f-presa").addEventListener("change", e => { stato.filtri.presa = e.target.value; aggiornaMappa(); });
 $("f-operatore").addEventListener("change", e => { stato.filtri.operatore = e.target.value; aggiornaMappa(); });
+$("f-fuori").addEventListener("change", e => { stato.filtri.fuori = e.target.checked; aggiornaMappa(); });
 $("azzera-filtri").addEventListener("click", () => {
-  Object.assign(stato.filtri, { potenza: 0, presa: "", operatore: "" });
-  $("f-potenza").value = "0"; $("f-presa").value = ""; $("f-operatore").value = "";
+  Object.assign(stato.filtri, { potenza: 0, presa: "", operatore: "", fuori: false });
+  $("f-potenza").value = "0"; $("f-presa").value = ""; $("f-operatore").value = ""; $("f-fuori").checked = false;
   aggiornaMappa();
 });
 
 function riempiOperatori() {
   const conta = new Map();
-  for (const s of stato.siti) conta.set(s.nomeOp, (conta.get(s.nomeOp) || 0) + 1);
+  for (const s of stato.siti.filter(x => !x.fuori)) conta.set(s.nomeOp, (conta.get(s.nomeOp) || 0) + 1);
   const voci = [...conta].sort((a, b) => a[0].localeCompare(b[0], "it"));
   $("f-operatore").insertAdjacentHTML("beforeend",
     voci.map(([n, c]) => `<option value="${esc(n)}">${esc(n)} (${c})</option>`).join(""));
@@ -240,7 +265,7 @@ function disegnaElenco() {
     <li><button type="button" class="voce" data-id="${esc(s.id)}">
       <i class="pallino ${s.stato}" aria-hidden="true">${simbolo(s.stato)}</i>
       <span><b>${esc(s.indirizzo || "Indirizzo non indicato")}</b>
-        <small class="tenue">${esc(s.citta || "")} · ${esc(s.nomeOp)} · ${s.dc ? "DC" : "AC"} ${numero(s.kw)} kW</small>
+        <small class="tenue">${s.fuori ? "Non nella PUN · " : ""}${esc(s.citta || "")}${s.citta ? " · " : ""}${esc(s.nomeOp)}${s.fuori ? "" : ` · ${s.dc ? "DC" : "AC"} ${numero(s.kw)} kW`}</small>
         <span class="sr-only">${riassunto(s)}</span></span>
       <span class="dist">${d < 10 ? numero(d, 1) : numero(d)} km</span>
     </button></li>`).join("");
@@ -292,11 +317,12 @@ $("vicino").addEventListener("click", () => {
 
 // ── scheda di dettaglio ─────────────────────────────────────────────────
 
-const SIMBOLI = { libera: "✓", occupata: "●", guasta: "✕", sconosciuto: "?" };
+const SIMBOLI = { libera: "✓", occupata: "●", guasta: "✕", sconosciuto: "?", fuori: "!" };
 const simbolo = st => SIMBOLI[st] || "?";
-const statoPresa = p => (SIMBOLI[p.stato] ? p.stato : "sconosciuto");
+const statoPresa = p => (SIMBOLI[p.stato] && p.stato !== "fuori" ? p.stato : "sconosciuto");
 
 function riassunto(s) {
+  if (s.fuori) return "Non presente nella PUN: stato sconosciuto";
   const reali = s.punti.filter(p => p.tempo_reale);
   if (!reali.length) return "Stato non disponibile in tempo reale";
   if (s.libere) return `${s.libere} ${s.libere === 1 ? "presa libera" : "prese libere"} su ${s.punti.length}`;
@@ -372,6 +398,70 @@ function htmlPrezzi(s) {
   return `<h3>Prezzo</h3><ul class="prese">${righe.join("")}</ul><p><small class="tenue">Con abbonamenti o app diverse il prezzo può cambiare. <a href="prezzi.html">Confronta i prezzi</a></small></p>`;
 }
 
+// ── altre fonti ─────────────────────────────────────────────────────────
+
+const GIORNI = { Mo: "lun", Tu: "mar", We: "mer", Th: "gio", Fr: "ven", Sa: "sab", Su: "dom", PH: "festivi" };
+function orari(testo) {
+  if (!testo) return null;
+  if (testo.trim() === "24/7") return "Sempre aperta (24 ore su 24)";
+  return "Orari: " + testo.replace(/\b(Mo|Tu|We|Th|Fr|Sa|Su|PH)\b/g, g => GIORNI[g])
+    .replace(/\boff\b/g, "chiuso").replace(/;\s*/g, " · ");
+}
+function esitoCommento(e) {
+  if (!e) return "";
+  if (/^charged/i.test(e)) return `<span class="esito-ok">✓ Ricarica riuscita</span> · `;
+  if (/^failed/i.test(e)) return `<span class="esito-ko">✕ Ricarica non riuscita</span> · `;
+  return "";
+}
+const dataIt = d => new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" });
+
+function datiAltreFonti(s) {
+  return {
+    o: s.fuori ? s.osmDati : stato.osm?.per_sito?.[s.id],
+    m: s.fuori ? s.ocmDati : stato.ocm?.per_sito?.[s.id],
+  };
+}
+
+function htmlAltreFonti(s) {
+  const { o, m } = datiAltreFonti(s);
+  if (!o && !m) return "";
+  const info = [];
+  const h = orari(o?.opening_hours);
+  if (h && !(s.h24 && o.opening_hours.trim() === "24/7")) info.push(h);   // già detto dalla PUN
+  const posti = +(o?.capacity || m?.posti || 0);
+  if (posti) info.push(`${posti} ${posti === 1 ? "posto auto" : "posti auto"}`);
+  if (o?.access === "customers") info.push("Riservata ai clienti");
+  if (o?.fee === "no") info.push("Segnalata come gratuita");
+  if (o?.covered === "yes") info.push("Al coperto");
+  let html = `<h3>Dalle altre fonti</h3>`;
+  if (info.length) html += `<ul class="etichette">${info.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  if (m?.accesso) html += `<p><small>Come arrivarci, secondo gli utenti: ${esc(m.accesso)}</small></p>`;
+  // Solo commenti degli ultimi 3 anni: quelli più vecchi dicono poco sullo stato di oggi.
+  const limite = new Date(); limite.setFullYear(limite.getFullYear() - 3);
+  const commenti = (m?.ultimi_commenti || []).filter(c => c.data && new Date(c.data) >= limite);
+  if (commenti.length) {
+    html += `<p style="margin-bottom:0"><b>Cosa dicono gli utenti</b></p><ul class="commenti">${commenti.map(c => `
+      <li><small class="tenue">${esitoCommento(c.esito)}${dataIt(c.data)}${c.autore ? ` · ${esc(c.autore)}` : ""}</small>
+        <p>${esc(c.testo)}</p></li>`).join("")}</ul>`;
+  }
+  const fonti = [s.fuori ? null : "PUN (stato in tempo reale)",
+    o ? `<a href="https://www.openstreetmap.org/${esc(o.id)}" target="_blank" rel="noopener">OpenStreetMap</a>` : null,
+    m ? `<a href="${esc(m.link)}" target="_blank" rel="noopener">Open Charge Map</a>` : null].filter(Boolean);
+  html += `<p><small class="tenue">Fonti: ${fonti.join(" · ")}.
+    ${o ? "Dati OpenStreetMap © contributori di OpenStreetMap, licenza ODbL." : ""}
+    ${m ? `Dati e commenti da Open Charge Map, licenza <a href="https://creativecommons.org/licenses/by/4.0/deed.it" target="_blank" rel="noopener">CC BY 4.0</a>${m.verificata ? `, ultima verifica degli utenti: ${dataIt(m.verificata)}` : ""}.` : ""}</small></p>`;
+  return html;
+}
+
+function htmlPreseFuori(s) {
+  const voci = Object.entries(s.conteggioPrese || {});
+  return `<div class="avviso-fuori"><p style="margin:0">Questa colonnina <b>non è nella Piattaforma Unica Nazionale</b>,
+    dove gli operatori devono registrare le colonnine pubbliche. È segnalata sia da OpenStreetMap sia da
+    Open Charge Map, ma potrebbe essere privata, spostata o smontata: <b>verifica prima di andarci</b>.</p></div>
+    ${voci.length ? `<h3>Prese segnalate</h3><ul class="etichette">${voci.map(([k, n]) =>
+      `<li>${n} × ${esc(CONNETTORI[k] || k)}</li>`).join("")}</ul>` : ""}`;
+}
+
 function link(s) {
   const d = `${s.lat},${s.lon}`;
   return {
@@ -403,7 +493,7 @@ function apri(id, { aggiornamento = false } = {}) {
       </button>
     </div>
     <p class="riassunto ${s.stato}"><i class="pallino ${s.stato}" aria-hidden="true">${simbolo(s.stato)}</i>${riassunto(s)}</p>
-    <p><small class="tenue">Stato aggiornato ${tempoFa(stato.aggiornato)}</small></p>
+    ${s.fuori ? "" : `<p><small class="tenue">Stato aggiornato ${tempoFa(stato.aggiornato)}</small></p>`}
 
     <div class="azioni-dettaglio">
       <button type="button" class="bottone primario" id="portami" aria-expanded="false" aria-controls="navigatori">
@@ -418,7 +508,7 @@ function apri(id, { aggiornamento = false } = {}) {
       <a class="bottone" href="${l.waze}" target="_blank" rel="noopener">Apri in Waze</a>
     </div>
 
-    <h3>Prese</h3>
+    ${s.fuori ? htmlPreseFuori(s) : `<h3>Prese</h3>
     <ul class="prese">${s.punti.map(p => `
       <li class="presa">
         <i class="pallino ${p.tempo_reale ? statoPresa(p) : "sconosciuto"}" aria-hidden="true">${simbolo(p.tempo_reale ? statoPresa(p) : "sconosciuto")}</i>
@@ -427,9 +517,10 @@ function apri(id, { aggiornamento = false } = {}) {
       </li>`).join("")}
     </ul>
     ${htmlProfilo(s)}
-    ${htmlPrezzi(s)}
+    ${htmlPrezzi(s)}`}
     ${servizi.length || extra.length ? `<h3>Sul posto</h3><ul class="etichette">${[...extra, ...servizi].map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-    <p><small class="tenue">Dati PUN (MASE/GSE) rielaborati, non ufficiali: controlla sempre sul posto o nell'app dell'operatore.</small></p>`;
+    ${htmlAltreFonti(s)}
+    <p><small class="tenue">${s.fuori ? "Dati segnalati da volontari, non ufficiali" : "Dati PUN (MASE/GSE) rielaborati, non ufficiali"}: controlla sempre sul posto o nell'app dell'operatore.</small></p>`;
   $("dettaglio").hidden = false;
   if (!aggiornamento) $("dettaglio").focus();
 
@@ -467,11 +558,15 @@ document.addEventListener("keydown", e => {
 
 async function avvio() {
   try {
-    const [live, profili, prezzi] = await Promise.all([
+    const [live, profili, prezzi, osm, ocm] = await Promise.all([
       carica("live.json"),
       carica("profili.json").catch(() => null),
       carica("prezzi.json").catch(() => null),
+      carica("osm.json").catch(() => null),
+      carica("ocm.json").catch(() => null),
     ]);
+    stato.osm = osm; stato.ocm = ocm;
+    preparaFuori();
     prepara(live);
     stato.profili = profili?.colonnine || {};
     stato.prezzi = prezzi;

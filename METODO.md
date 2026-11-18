@@ -25,6 +25,37 @@ stato di ogni presa siciliana. La PUN usa questi stati, che raggruppiamo così:
 Una **presa** (EVSE) è un punto dove si collega un'auto. Una colonnina ha di
 solito 2 prese; un **sito** è un parcheggio con una o più colonnine.
 
+### Incrocio con altre fonti (dati fissi)
+
+Una volta al giorno si scaricano le colonnine siciliane da **OpenStreetMap**
+(servizio Overpass) e da **Open Charge Map** (serve una chiave gratuita). Ogni
+sito PUN viene abbinato al punto più adatto delle altre fonti:
+
+| Esito | Regola |
+|---|---|
+| confermata | entro 50 m e stesso operatore |
+| probabile | entro 50 m con operatore non indicato, oppure entro 150 m con lo stesso operatore |
+| da controllare | tra 50 e 150 m, operatore non indicato (non usata sul sito) |
+| dubbia | entro 150 m ma operatore diverso (non usata sul sito) |
+
+- L'operatore si confronta per parole ("ENEL X WAY ITALIA SRL" ≈ "Enel X"),
+  ignorando parole generiche (srl, italia, mobility…). Le sigle PUN si
+  riconoscono dal **codice della presa**: IT\*ENX = Enel X Way (anche quando la
+  PUN scrive solo "ENX"), IT\*PLN = Plenitude/Be Charge (anche "BEC").
+- L'abbinamento è **uno a uno**: prima le coppie con lo stesso operatore, poi le
+  più vicine.
+- Misura del 13/11/2026: PUN 1.456 siti, OpenStreetMap 541, Open Charge Map 367.
+  Il 65% dei siti PUN è solo nella PUN, il 29% in due fonti, il 7% in tutte e
+  tre. Distanza tipica tra le posizioni: 6 m.
+- **Non diamo un voto in base al numero di fonti**: le altre fonti sono
+  incomplete e spesso vecchie, sarebbe ingiusto per le colonnine mappate male.
+- **Colonnine fuori dalla PUN** (nessun sito PUN entro 400 m): sul sito solo se
+  presenti in **entrambe** le altre fonti, con accesso non privato e non segnate
+  come rimosse o guaste; nascoste di base (filtro). Erano 6 su circa 115.
+- Commenti di Open Charge Map: solo quelli degli ultimi 3 anni, con autore e data.
+- Licenze: OSM (ODbL) e OCM (CC BY 4.0) stanno in **due file separati**
+  (`osm.json`, `ocm.json`), per non mescolare dati con licenze diverse.
+
 ## 2. Archivio privato della zona hub
 
 Si salvano solo i **cambi di stato** (`eventi/`), più un **registro dei giri**

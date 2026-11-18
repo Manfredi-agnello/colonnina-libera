@@ -105,25 +105,25 @@ def da_risposta(risposta: dict) -> list[dict]:
             if c and in_sicilia(c["lat"], c["lon"])]
 
 
-def scarica(tentativi: int = 3) -> list[dict]:
+def scarica(tentativi: int = 3, attesa: int = 60, timeout: int = 180) -> list[dict]:
     """Scarica le colonnine OSM della Sicilia. Solleva un'eccezione se fallisce."""
     ultimo_errore = None
     for prova in range(tentativi):
         server = SERVER[prova % len(SERVER)]
         try:
-            r = requests.post(server, data={"data": QUERY}, timeout=180,
+            r = requests.post(server, data={"data": QUERY}, timeout=timeout,
                               headers={"User-Agent": USER_AGENT})
             if r.status_code in (429, 502, 503, 504):
                 ultimo_errore = f"{server}: HTTP {r.status_code}"
-                log.warning("Overpass occupato (%s), riprovo tra 60 s", r.status_code)
-                time.sleep(60)
+                log.warning("Overpass occupato (%s), riprovo con un altro server", r.status_code)
+                time.sleep(attesa)
                 continue
             r.raise_for_status()
             return da_risposta(r.json())
         except (requests.RequestException, ValueError) as e:
             ultimo_errore = f"{server}: {e}"
             log.warning("Overpass non raggiungibile: %s", e)
-            time.sleep(30)
+            time.sleep(attesa // 2)
     raise RuntimeError(f"OpenStreetMap non scaricato: {ultimo_errore}")
 
 

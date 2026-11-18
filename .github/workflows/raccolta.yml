@@ -9,7 +9,9 @@
 # Segreti necessari (Settings -> Secrets and variables -> Actions):
 #  - HUB_TOKEN, HUB_REPO           token e nome del repository PRIVATO della zona hub
 #  - HUB_LAT, HUB_LON, HUB_RAGGIO_KM  coordinate dell'hub (non stanno nel codice pubblico)
+#  - OCM_CHIAVE                    chiave gratuita di Open Charge Map (facoltativa)
 # Senza HUB_TOKEN il workflow funziona lo stesso, ma senza archivio hub.
+# Senza OCM_CHIAVE il sito funziona lo stesso, ma senza i dati di Open Charge Map.
 #
 # ATTENZIONE: i log di questo repository sono PUBBLICI. Nessun passaggio deve
 # stampare dati della zona hub.
@@ -33,7 +35,7 @@ concurrency:
 jobs:
   raccolta:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 13
     environment:
       name: github-pages
       url: ${{ steps.pubblica.outputs.page_url }}
@@ -80,6 +82,15 @@ jobs:
           else
             python -m raccolta --stato stato --sito out/sito
           fi
+
+      - name: Altre fonti (OpenStreetMap, Open Charge Map)
+        # Download una volta al giorno, abbinamento ogni giro. Se qualcosa va storto
+        # il sito si pubblica lo stesso, con i dati della PUN.
+        continue-on-error: true
+        timeout-minutes: 4
+        env:
+          OCM_CHIAVE: ${{ secrets.OCM_CHIAVE }}
+        run: python -m raccolta.fonti --stato stato --sito out/sito
 
       - name: Salva l'archivio privato (in silenzio)
         if: always() && env.HAS_HUB == 'true'

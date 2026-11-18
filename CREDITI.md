@@ -15,6 +15,11 @@ e parte delle scelte (filtro per area, semantica di `real_time` e dello stato CH
 - Punti di ricarica: **Piattaforma Unica Nazionale (PUN)**, promossa dal MASE e gestita dal GSE con RSE.
   Nessuna licenza dichiarata: si applica il principio di riuso dell'art. 52 del CAD, citando la fonte.
   Dati rielaborati, non ufficiali, senza garanzia di completezza o correttezza.
+- Orari, posti e altri dettagli: [OpenStreetMap](https://www.openstreetmap.org/), © contributori di
+  OpenStreetMap, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Scaricati una volta al giorno
+  tramite Overpass e pubblicati in un file separato (`dati/osm.json`).
+- Commenti degli utenti e dettagli: [Open Charge Map](https://openchargemap.org/), CC BY 4.0
+  (autore e data indicati per ogni commento). File separato `dati/ocm.json`.
 - Mappa: [OpenFreeMap](https://openfreemap.org) © [OpenMapTiles](https://openmaptiles.org/),
   dati © [contributori di OpenStreetMap](https://www.openstreetmap.org/copyright), ODbL.
 

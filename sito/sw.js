@@ -4,7 +4,7 @@
 // - mappa (OpenFreeMap): non viene toccata, ci pensa la cache normale del browser.
 // Cambia VERSIONE quando modifichi i file del sito, così i telefoni scaricano quelli nuovi.
 
-const VERSIONE = "v3";
+const VERSIONE = "v4";
 const BASE = [
   "./", "index.html", "prezzi.html", "affidabilita.html", "info.html", "privacy.html", "note-legali.html",
   "css/stile.css", "css/mappa.css",

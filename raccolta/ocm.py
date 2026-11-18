@@ -48,20 +48,20 @@ def leggi_chiave() -> str | None:
     return chiave if chiave and "QUI" not in chiave else None
 
 
-def _get(percorso: str, parametri: dict, chiave: str):
-    for prova in range(3):
+def _get(percorso: str, parametri: dict, chiave: str, tentativi=3, attesa=60, timeout=120):
+    for prova in range(tentativi):
         try:
-            r = requests.get(f"{API}/{percorso}", params=parametri, timeout=120,
+            r = requests.get(f"{API}/{percorso}", params=parametri, timeout=timeout,
                              headers={"User-Agent": USER_AGENT, "X-API-Key": chiave})
             if r.status_code in (429, 502, 503, 504):
-                log.warning("Open Charge Map occupato (%s), riprovo tra 60 s", r.status_code)
-                time.sleep(60)
+                log.warning("Open Charge Map occupato (%s)", r.status_code)
+                time.sleep(attesa)
                 continue
             r.raise_for_status()
             return r.json()
         except (requests.RequestException, ValueError) as e:
             log.warning("Open Charge Map non raggiungibile: %s", e)
-            time.sleep(30)
+            time.sleep(attesa // 2)
     raise RuntimeError(f"Open Charge Map non scaricato ({percorso})")
 
 
@@ -89,6 +89,7 @@ def normalizza(poi: dict, rif: dict) -> dict | None:
     commenti = sorted(poi.get("UserComments") or [], key=lambda c: c.get("DateCreated") or "", reverse=True)
     return {
         "id": f"ocm/{poi['ID']}",
+        "link": f"https://openchargemap.org/site/poi/details/{poi['ID']}",
         "lat": round(lat, 6), "lon": round(lon, 6),
         "operator": operatore,
         "name": ind.get("Title"),
@@ -106,18 +107,20 @@ def normalizza(poi: dict, rif: dict) -> dict | None:
         "ultimi_commenti": [{"data": (c.get("DateCreated") or "")[:10],
                              "tipo": (rif["commenti"].get(c.get("CommentTypeID")) or {}).get("Title"),
                              "esito": (rif["checkin"].get(c.get("CheckinStatusTypeID")) or {}).get("Title"),
-                             "testo": (c.get("Comment") or "")[:300]} for c in commenti[:3]],
+                             "autore": (c.get("UserName") or "").strip() or None,
+                             "testo": (c.get("Comment") or "").strip()[:400]}
+                            for c in commenti[:3] if (c.get("Comment") or "").strip()],
     }
 
 
-def scarica(chiave: str) -> list[dict]:
-    r = _get("referencedata/", {}, chiave)
+def scarica(chiave: str, **tempi) -> list[dict]:
+    r = _get("referencedata/", {}, chiave, **tempi)
     rif = {"stati": _titoli(r.get("StatusTypes")), "fornitori": _titoli(r.get("DataProviders")),
            "operatori": _titoli(r.get("Operators")), "commenti": _titoli(r.get("UserCommentTypes")),
            "checkin": _titoli(r.get("CheckinStatusTypes"))}
     punti = _get("poi/", {"output": "json", "countrycode": "IT", "maxresults": 5000,
                           "boundingbox": "(38.9,11.8),(35.2,15.7)",
-                          "compact": "true", "verbose": "false", "includecomments": "true"}, chiave)
+                          "compact": "true", "verbose": "false", "includecomments": "true"}, chiave, **tempi)
     return [c for c in (normalizza(p, rif) for p in punti) if c and in_sicilia(c["lat"], c["lon"])]
 
 
