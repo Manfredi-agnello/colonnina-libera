@@ -136,3 +136,11 @@ body.con-mappa { height: 100dvh; overflow: hidden; display: flex; flex-direction
 .commenti .esito-ko { color: var(--guasta); font-weight: 600; }
 .commenti p { margin: 2px 0; overflow-wrap: anywhere; }
 .avviso-fuori { border-left: 3px solid var(--ignoto); padding: 6px 10px; background: var(--carta-2); border-radius: 0 8px 8px 0; }
+
+/* Stima di tempo e costo */
+.stima { margin: 14px 0; border: 1px solid var(--bordo); border-radius: 12px; padding: 8px 12px; }
+.stima summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.griglia-stima { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-top: 8px; }
+.griglia-stima label { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; }
+.griglia-stima label:first-child { grid-column: 1 / -1; }
+.griglia-stima input { width: 5em; }

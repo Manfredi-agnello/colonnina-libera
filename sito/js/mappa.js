@@ -484,6 +484,95 @@ function htmlPreseFuori(s) {
       `<li>${n} × ${esc(CONNETTORI[k] || k)}</li>`).join("")}</ul>` : ""}`;
 }
 
+// ── quanto ci metto e quanto spendo ─────────────────────────────────────
+// Stima semplice e prudente (vedi METODO.md, "Stima di tempo e costo"):
+//  - AC: la potenza è limitata dal caricatore di bordo dell'auto (11 kW, il più diffuso);
+//  - DC: fino all'80% di batteria in media l'80% della potenza utile, oltre l'80% circa il 35%;
+//  - perdite di ricarica: 8%. Il risultato è un intervallo (±15%), non un numero preciso.
+
+const AUTO_BASE = { batteria: 60, dcMax: 100 };
+function leggiAuto() {
+  try { return { ...AUTO_BASE, ...JSON.parse(localStorage.getItem("auto") || "{}") }; } catch { return { ...AUTO_BASE }; }
+}
+function salvaAuto(a) { try { localStorage.setItem("auto", JSON.stringify(a)); } catch { /* niente */ } }
+
+const tipoTariffa = p => (p.corrente === "DC" ? (p.kw >= 100 ? "HPC" : "DC") : "AC");
+
+function prezzoPer(s, tipo) {
+  const manuale = (stato.prezzi?.rilevati_a_mano || []).find(r => r.tipo === tipo &&
+    (nomeOperatore(r.operatore) === s.nomeOp || r.operatore.toLowerCase() === (s.operatore || "").toLowerCase()) &&
+    (!r.id_colonnina || s.punti.some(p => p.id === r.id_colonnina)));
+  if (manuale) return { kwh: manuale.prezzo_kwh, minuto: manuale.costo_minuto, avvio: manuale.costo_avvio,
+    fonte: `prezzo a consumo verificato il ${new Date(manuale.data_rilevazione).toLocaleDateString("it-IT")}` };
+  for (const p of s.punti) {
+    const v = p.tariffe_pun?.[tipo.toLowerCase()];
+    if (v?.energy != null) return { kwh: conIva(v.energy), minuto: conIva(v.time), avvio: conIva(v.activation),
+      fonte: "prezzo PUN con IVA stimata" };
+  }
+  return null;
+}
+
+function stimaRicarica({ kwPresa, dc, batteria, dcMax, da, a }) {
+  const potenza = dc ? Math.min(kwPresa, dcMax) : Math.min(kwPresa, 11);
+  const fino80 = Math.max(0, Math.min(a, 80) - da), oltre80 = Math.max(0, a - Math.max(da, 80));
+  const kwhBatteria = batteria * (a - da) / 100;
+  const ore = dc
+    ? (batteria * fino80 / 100) / (potenza * 0.8) + (batteria * oltre80 / 100) / (potenza * 0.35)
+    : kwhBatteria / (potenza * 0.92);
+  return { minuti: ore * 60, kwhPagati: kwhBatteria / 0.92, potenza };
+}
+
+function htmlStima(s) {
+  const tipi = [...new Map(s.punti.filter(p => p.kw).map(p =>
+    [`${p.corrente}${p.kw}`, p])).values()].sort((x, y) => y.kw - x.kw);
+  if (!tipi.length) return "";
+  const auto = leggiAuto();
+  return `<details class="stima" id="stima">
+    <summary>Quanto ci metto e quanto spendo?</summary>
+    <div class="griglia-stima">
+      <label>Presa <select id="st-presa">${tipi.map((p, i) =>
+        `<option value="${i}">${p.corrente} ${numero(p.kw)} kW · ${esc([...new Set(p.connettori.map(c => CONNETTORI[c[0]] || c[0]))].join(", "))}</option>`).join("")}</select></label>
+      <label>Batteria dell'auto <select id="st-batteria">${[40, 50, 60, 75, 90, 100].map(v =>
+        `<option value="${v}"${v === auto.batteria ? " selected" : ""}>${v} kWh</option>`).join("")}</select></label>
+      <label>Potenza massima DC dell'auto <select id="st-dcmax">${[50, 100, 150, 250].map(v =>
+        `<option value="${v}"${v === auto.dcMax ? " selected" : ""}>${v} kW</option>`).join("")}</select></label>
+      <label>Da (%) <input id="st-da" type="number" min="0" max="99" step="5" value="20" inputmode="numeric"></label>
+      <label>A (%) <input id="st-a" type="number" min="1" max="100" step="5" value="80" inputmode="numeric"></label>
+    </div>
+    <p id="st-risultato" aria-live="polite"></p>
+    <p><small class="tenue">Stima indicativa: dipende da auto, temperatura e colonnina. AC limitata a 11 kW
+      (caricatore di bordo più diffuso); in DC oltre l'80% la ricarica rallenta molto.</small></p>
+  </details>`;
+}
+
+function collegaStima(s) {
+  const el = $("stima");
+  if (!el) return;
+  const tipi = [...new Map(s.punti.filter(p => p.kw).map(p => [`${p.corrente}${p.kw}`, p])).values()].sort((x, y) => y.kw - x.kw);
+  const calcola = () => {
+    const p = tipi[+$("st-presa").value];
+    const batteria = +$("st-batteria").value, dcMax = +$("st-dcmax").value;
+    const da = Math.max(0, Math.min(99, +$("st-da").value || 0));
+    const a = Math.max(da + 1, Math.min(100, +$("st-a").value || 0));
+    salvaAuto({ batteria, dcMax });
+    const r = stimaRicarica({ kwPresa: p.kw, dc: p.corrente === "DC", batteria, dcMax, da, a });
+    const min = Math.max(1, Math.round(r.minuti * 0.85 / 5) * 5), max = Math.max(min + 5, Math.round(r.minuti * 1.15 / 5) * 5);
+    const durata = m => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60 ? `${m % 60} min` : ""}`.trim());
+    const prezzo = prezzoPer(s, tipoTariffa(p));
+    let costo = `Prezzo non ancora rilevato per questa colonnina: circa <b>${numero(r.kwhPagati)} kWh</b> da pagare.`;
+    if (prezzo) {
+      const minuti = (prezzo.minuto || 0) * r.minuti;
+      const tot = prezzo.kwh * r.kwhPagati + (prezzo.avvio || 0) + minuti;
+      costo = `Circa <b>${euro(tot)}</b> per ${numero(r.kwhPagati)} kWh <small class="tenue">(${esc(prezzo.fonte)}${prezzo.minuto ? ", compreso il costo al minuto" : ""})</small>.`;
+    }
+    $("st-risultato").innerHTML = `Da ${da}% a ${a}%: <b>${durata(min)} – ${durata(max)}</b>
+      <small class="tenue">(potenza utile circa ${numero(r.potenza)} kW)</small>.<br>${costo}`;
+  };
+  el.addEventListener("input", calcola);
+  el.addEventListener("change", calcola);
+  calcola();
+}
+
 // ── segnala un problema ─────────────────────────────────────────────────
 // Apre l'app di posta con un messaggio già compilato: nessun server, nessun dato salvato da noi.
 
@@ -528,6 +617,9 @@ function link(s) {
 function apri(id, { aggiornamento = false } = {}) {
   const s = stato.perId.get(id);
   if (!s) return;
+  // Aggiornamento automatico della stessa scheda: si conservano i valori della stima.
+  const statoStima = aggiornamento && stato.aperto === id && $("stima")
+    ? { open: $("stima").open, valori: ["st-presa", "st-da", "st-a"].map(k => $(k).value) } : null;
   stato.aperto = id;
   history.replaceState(null, "", `#c=${encodeURIComponent(id)}`);
   const l = link(s);
@@ -572,7 +664,8 @@ function apri(id, { aggiornamento = false } = {}) {
       </li>`).join("")}
     </ul>
     ${htmlProfilo(s)}
-    ${htmlPrezzi(s)}`}
+    ${htmlPrezzi(s)}
+    ${htmlStima(s)}`}
     ${servizi.length || extra.length ? `<h3>Sul posto</h3><ul class="etichette">${[...extra, ...servizi].map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
     ${htmlAltreFonti(s)}
     ${htmlSegnala(s)}
@@ -586,6 +679,11 @@ function apri(id, { aggiornamento = false } = {}) {
     nav.hidden = !nav.hidden;
     e.currentTarget.setAttribute("aria-expanded", String(!nav.hidden));
   });
+  if (statoStima && $("stima")) {
+    $("stima").open = statoStima.open;
+    ["st-presa", "st-da", "st-a"].forEach((k, i) => { $(k).value = statoStima.valori[i]; });
+  }
+  if (!s.fuori) collegaStima(s);
   $("salva").addEventListener("click", e => {
     if (preferite.has(s.id)) preferite.delete(s.id); else preferite.add(s.id);
     salvaPreferite();

@@ -56,6 +56,19 @@ sito PUN viene abbinato al punto più adatto delle altre fonti:
 - Licenze: OSM (ODbL) e OCM (CC BY 4.0) stanno in **due file separati**
   (`osm.json`, `ocm.json`), per non mescolare dati con licenze diverse.
 
+### Stima di tempo e costo (scheda della colonnina)
+
+Stima indicativa per chi guida, non usata nelle analisi:
+- energia nella batteria = batteria × (arrivo% − partenza%); energia pagata = quella ÷ 0,92 (8% di perdite);
+- **AC**: potenza = min(potenza presa, 11 kW, il caricatore di bordo più diffuso);
+- **DC**: potenza utile = min(potenza presa, potenza massima DC dell'auto); fino all'80% in media l'80%
+  di quella potenza, oltre l'80% circa il 35%;
+- il tempo è mostrato come intervallo ±15%, arrotondato a 5 minuti;
+- costo = prezzo €/kWh × energia pagata + costo di avvio + eventuale costo al minuto. Prezzo: prima quello
+  rilevato a mano, poi quello PUN con IVA stimata; altrimenti solo i kWh.
+
+Batteria e potenza DC scelte dall'utente restano nel suo browser.
+
 ## 2. Archivio privato della zona hub
 
 Si salvano solo i **cambi di stato** (`eventi/`), più un **registro dei giri**
