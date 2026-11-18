@@ -30,7 +30,7 @@ async function avvio() {
   try { dati = await carica("prezzi.json"); }
   catch { $("righe").innerHTML = `<tr><td colspan="5">Prezzi non disponibili al momento.</td></tr>`; return; }
 
-  const manuali = dati.rilevati_a_mano.map(r => ({ ...r, fonte: `${r.fonte}, verificato il ${new Date(r.data_rilevazione).toLocaleDateString("it-IT")}` }));
+  const manuali = dati.rilevati_a_mano.map(r => ({ ...r, fonte: `${r.fonte}, verificato il ${new Date(r.data_rilevazione).toLocaleDateString("it-IT")}${r.note ? ` (${r.note})` : ""}` }));
   // PUN: prezzi dichiarati senza IVA → mostriamo la stima con IVA, e il dato originale accanto.
   const pun = dati.pubblicati_su_pun.map(r => ({ ...r, dichiarato: r.prezzo_kwh,
     prezzo_kwh: conIva(r.prezzo_kwh), costo_minuto: conIva(r.costo_minuto), costo_avvio: conIva(r.costo_avvio),

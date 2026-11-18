@@ -35,9 +35,21 @@ async function avvio() {
   }
 
   try {
-    const op = await carica("operatori.json");
+    // Le righe dello stesso operatore (scritto in modi diversi nella PUN) si uniscono,
+    // con la percentuale di fuori servizio pesata sul numero di prese.
+    const uniti = new Map();
+    for (const o of await carica("operatori.json")) {
+      const nome = nomeOperatore(o.operatore);
+      const u = uniti.get(nome) || { nome, prese: 0, guaste: 0, segnala_occupazione: false };
+      u.prese += o.prese;
+      u.guaste += o.prese * o.guasta_pct;
+      u.segnala_occupazione ||= o.segnala_occupazione;
+      uniti.set(nome, u);
+    }
+    const op = [...uniti.values()].map(u => ({ ...u, guasta_pct: u.guaste / u.prese }))
+      .sort((a, b) => b.prese - a.prese);
     $("operatori").innerHTML = op.filter(o => o.prese >= 10).map(o => `<tr>
-      <th scope="row">${esc(nomeOperatore(o.operatore))}</th><td class="num">${numero(o.prese)}</td>
+      <th scope="row">${esc(o.nome)}</th><td class="num">${numero(o.prese)}</td>
       <td class="num">${numero(o.guasta_pct)}%</td>
       <td><div class="barra-pct" aria-hidden="true"><span style="width:${Math.min(100, o.guasta_pct)}%"></span></div></td>
       <td>${o.segnala_occupazione ? "Sì" : "No, solo se funziona"}</td></tr>`).join("");

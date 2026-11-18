@@ -53,6 +53,8 @@ def leggi(percorso: Path = FILE_PREZZI) -> tuple[list[dict], list[str]]:
         if not any((v or "").strip() for v in r.values()):
             continue                                            # riga vuota
         e: list[str] = []
+        if r.get(None):   # più colonne del previsto: di solito un separatore dentro le note
+            e.append(f"riga {n}: troppe colonne (c'è un '{separatore}' dentro le note? usa una virgola)")
         operatore = (r["operatore"] or "").strip()
         tipo = (r["tipo"] or "").strip().upper()
         if not operatore:

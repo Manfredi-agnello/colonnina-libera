@@ -27,7 +27,7 @@ const $ = id => document.getElementById(id);
 const stato = {
   siti: [], perId: new Map(), profili: {}, prezzi: null, aggiornato: null,
   osm: null, ocm: null, fuori: [],   // altre fonti (file separati, ognuno con la sua licenza)
-  filtri: { libere: false, rapide: false, potenza: 0, presa: "", operatore: "", fuori: false, preferite: false },
+  filtri: { libere: false, rapide: false, potenza: 0, presa: "", operatore: "", fuori: false, preferite: false, aperte: false },
   vista: "mappa", io: null, aperto: null,
 };
 
@@ -38,6 +38,46 @@ const preferite = new Set((() => {
 })());
 function salvaPreferite() {
   try { localStorage.setItem("preferite", JSON.stringify([...preferite])); } catch { /* navigazione privata */ }
+}
+
+// ── orari ───────────────────────────────────────────────────────────────
+// Orari dichiarati dall'operatore alla PUN: [[giorno 1-7 (1 = lunedì), "08:30", "20:00"], ...].
+// L'ora è sempre quella italiana, anche se il telefono è impostato su un altro fuso.
+
+const NOMI_GIORNI = ["", "lun", "mar", "mer", "gio", "ven", "sab", "dom"];
+function adessoInItalia() {
+  const parti = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Rome", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date()).map(p => [p.type, p.value]));
+  const giorno = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(parti.weekday) + 1;
+  return { giorno, ora: `${parti.hour}:${parti.minute}` };
+}
+
+// true = aperta, false = chiusa, null = non lo sappiamo
+function apertaAdesso(s) {
+  if (s.fuori) return null;
+  if (s.h24) return true;
+  if (!s.orari?.length) return null;
+  const { giorno, ora } = adessoInItalia();
+  const ieri = giorno === 1 ? 7 : giorno - 1;
+  return s.orari.some(([g, inizio, fine]) => {
+    const notte = fine <= inizio;                      // es. 20:00-02:00: finisce il giorno dopo
+    if (g === giorno) return ora >= inizio && (notte || ora < fine);
+    return notte && g === ieri && ora < fine;
+  });
+}
+
+function testoOrari(orari) {
+  const perGiorno = Array.from({ length: 8 }, () => []);
+  for (const [g, inizio, fine] of orari) perGiorno[g].push(`${inizio}–${fine}`);
+  const gruppi = [];
+  for (let g = 1; g <= 7; g++) {
+    const fasce = perGiorno[g].join(", ") || "chiusa";
+    const ultimo = gruppi.at(-1);
+    if (ultimo && ultimo.fasce === fasce) ultimo.fine = g;
+    else gruppi.push({ inizio: g, fine: g, fasce });
+  }
+  return gruppi.map(x => `${NOMI_GIORNI[x.inizio]}${x.fine > x.inizio ? `–${NOMI_GIORNI[x.fine]}` : ""} ${x.fasce}`).join(" · ");
 }
 
 // ── dati ────────────────────────────────────────────────────────────────
@@ -91,6 +131,7 @@ function passaFiltri(s) {
   if (f.preferite) return preferite.has(s.id);   // le preferite si vedono sempre, anche con altri filtri
   if (s.fuori && !f.fuori) return false;
   if (f.libere && s.stato !== "libera") return false;
+  if (f.aperte && apertaAdesso(s) === false) return false;   // chi non indica gli orari resta visibile
   if (f.rapide && !s.dc) return false;
   if (f.potenza && s.kw < f.potenza) return false;
   if (f.presa && !s.prese.has(f.presa)) return false;
@@ -238,6 +279,7 @@ $("f-preferite").addEventListener("click", () => {
   }
 });
 interruttore("f-rapide", "rapide");
+interruttore("f-aperte", "aperte");
 
 function mostraPannello(si) {
   $("pannello-filtri").hidden = !si;
@@ -414,7 +456,7 @@ function htmlPrezzi(s) {
   for (const r of manuali) {
     if (r.id_colonnina && !s.punti.some(p => p.id === r.id_colonnina)) continue;
     const data = new Date(r.data_rilevazione).toLocaleDateString("it-IT");
-    righe.push(`<li><b>${euro(r.prezzo_kwh)}/kWh</b> ${r.tipo}${r.costo_minuto ? ` + ${euro(r.costo_minuto)}/min` : ""}${r.costo_avvio ? ` + ${euro(r.costo_avvio)} avvio` : ""} <small class="tenue">· tariffa a consumo, verificata il ${data} (${esc(r.fonte)})</small></li>`);
+    righe.push(`<li><b>${euro(r.prezzo_kwh)}/kWh</b> ${r.tipo}${r.costo_minuto ? ` + ${euro(r.costo_minuto)}/min` : ""}${r.costo_avvio ? ` + ${euro(r.costo_avvio)} avvio` : ""} <small class="tenue">· tariffa a consumo${r.note ? `, ${esc(r.note)}` : ""}, verificata il ${data} (${esc(r.fonte)})</small></li>`);
   }
   if (!righe.length) return `<h3>Prezzo</h3><p class="tenue">Prezzo non ancora rilevato. Controlla l'app dell'operatore. <a href="prezzi.html">Confronta i prezzi</a></p>`;
   return `<h3>Prezzo</h3><ul class="prese">${righe.join("")}</ul><p><small class="tenue">Con abbonamenti o app diverse il prezzo può cambiare. <a href="prezzi.html">Confronta i prezzi</a></small></p>`;
@@ -624,7 +666,10 @@ function apri(id, { aggiornamento = false } = {}) {
   history.replaceState(null, "", `#c=${encodeURIComponent(id)}`);
   const l = link(s);
   const servizi = (s.servizi || []).map(x => SERVIZI[x] || x.toLowerCase().replace(/_/g, " "));
-  const extra = [s.h24 ? "Aperta 24 ore su 24" : null, PARCHEGGIO[s.parcheggio]].filter(Boolean);
+  const aperta = apertaAdesso(s);
+  const extra = [s.h24 ? "Aperta 24 ore su 24" : null,
+    s.orari?.length ? `${aperta ? "Aperta adesso" : "Chiusa adesso"} · ${testoOrari(s.orari)}` : null,
+    PARCHEGGIO[s.parcheggio]].filter(Boolean);
 
   $("dettaglio").innerHTML = `
     <div class="maniglia" aria-hidden="true"></div>

@@ -1,1 +1,4 @@
 operatore;tipo;prezzo_kwh;costo_minuto;costo_avvio;id_colonnina;data_rilevazione;fonte;note
+ENEL X WAY ITALIA SRL;AC;0,69;;;;2026-11-18;sito ufficiale Enel X Way (enel.it, Pay Per Use Basic);dalle 7 alle 21, di notte 0,61
+ENEL X WAY ITALIA SRL;DC;0,76;;;;2026-11-18;sito ufficiale Enel X Way (enel.it, Pay Per Use Basic);DC 43-99 kW, dalle 7 alle 21, di notte 0,67
+ENEL X WAY ITALIA SRL;HPC;0,82;;;;2026-11-18;sito ufficiale Enel X Way (enel.it, Pay Per Use Basic);oltre 99 kW, giorno e notte

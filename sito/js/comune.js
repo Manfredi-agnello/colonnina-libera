@@ -134,13 +134,17 @@ async function aggiornaDistintivo() {
 }
 
 // ── testi ───────────────────────────────────────────────────────────────
+// Stesso operatore scritto in modi diversi nella PUN. Verificato dal codice delle prese:
+// IT*ENX = Enel X Way (anche "ENX"), IT*PLN = Plenitude/Be Charge (anche "BEC"),
+// IT*GES = DriWe (anche "Go Electric Stations"). Vedi METODO.md.
 const NOMI = {
-  "ENEL X WAY ITALIA SRL": "Enel X Way", "BEC": "BEC", "ENX": "ENX",
-  "UAU srl": "UAU", "Plenitude On The Road S.r.l.": "Plenitude",
+  "ENEL X WAY ITALIA SRL": "Enel X Way", "ENX": "Enel X Way",
+  "BEC": "Plenitude (Be Charge)", "Plenitude On The Road S.r.l.": "Plenitude (Be Charge)",
+  "Go Electric Stations SRLS": "DriWe", "UnoEnergy DriWe spa": "DriWe",
+  "UAU srl": "UAU",
   "Tesla Italia Srl.": "Tesla", "Repower Vendita Italia SpA": "Repower",
   "DUFERCO MOBILITY SRL": "Duferco", "A2A E.MOBILITY S.R.L.": "A2A",
   "Eurospin Sicilia S.p.a. a Socio Unico": "Eurospin", "Edison Next S.P.A.": "Edison",
-  "Go Electric Stations SRLS": "Go Electric Stations",
   "Porsche Sales & Marketplace GmbH": "Porsche", "ACEA ENERGIA": "Acea",
 };
 export function nomeOperatore(n) {
