@@ -36,7 +36,7 @@ API_PUN = "https://api.pun.piattaformaunicanazionale.it"
 REGIONE_RISERVA = "eu-south-1"
 POOL_RISERVA = "eu-south-1:e3b2ab05-2046-43dd-8ed0-c0f14c69d507"
 
-USER_AGENT = "colonnine-sicilia/0.1 (sito informativo non commerciale)"
+USER_AGENT = "colonnina-libera/0.1 (sito informativo non commerciale)"
 TIMEOUT_S = 30
 PAUSA_TRA_RICHIESTE_S = 0.5
 ATTESE_TENTATIVI_S = (5, 30, 120)   # 3 nuovi tentativi, sempre più distanziati

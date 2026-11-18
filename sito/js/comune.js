@@ -1,7 +1,7 @@
 // Parti comuni a tutte le pagine: nome del sito, intestazione e menu,
 // tema chiaro/scuro, badge "ultimo aggiornamento", nomi degli operatori.
 
-export const NOME_SITO = "Ricarica Sicilia";   // nome provvisorio: si sceglie in Fase 5
+export const NOME_SITO = "Colonnina Libera";
 // Titolare e contatto mostrati in Privacy, Note legali e Info. L'email è quella dedicata al sito.
 export const CONTATTO = { nome: "Manfredi Agnello", email: "" };   // email: da inserire in Fase 5
 
