@@ -89,6 +89,26 @@ Le **letture** di una presa sono gli istanti dei giri completi più gli istanti
 dei suoi cambi di stato, solo nei giorni in cui la presa compare nella
 fotografia giornaliera.
 
+### Report mensili, conservazione e compattazione
+
+- **Il 1° di ogni mese** il workflow `report` del repository privato crea il report del mese finito
+  (`report/mensili/AAAA-MM/`: pagina con grafici leggibile su GitHub, CSV, report HTML) e il
+  **riassunto permanente** `riassunti/AAAA-MM.json` (occupazione per ora, energia, sessioni, per classe e
+  per operatore, colonnine comparse o sparite). Aggiorna la pagina iniziale con il confronto mese per mese.
+  Report per un periodo a scelta: Actions → report → Run workflow.
+- **Dati grezzi conservati 12 mesi** (`raccolta/manutenzione.py`): dal giorno 3 di ogni mese si cancellano
+  i giorni precedenti al 1° del mese di 12 mesi prima, **solo se il riassunto di quel mese esiste**
+  (altrimenti ci si ferma e il mese resta). Si tiene **un giorno di margine** (l'ultimo giorno del mese
+  precedente): senza, le ricariche in corso a mezzanotte del primo giorno rimasto sembrerebbero iniziare a
+  mezzanotte. Verifica del 20/11/2026: il riassunto di novembre 2026 è identico prima e dopo la
+  cancellazione dei mesi precedenti.
+- **Punto di ripartenza** (`eventi/ripartenza/stato.csv`): prima di cancellare gli eventi si salva l'ultimo
+  stato noto di ogni presa, perché l'archivio registra solo i cambi.
+- **Compattazione mensile**: subito dopo, la storia Git del repository privato riparte da un solo commit con
+  i file attuali (report e riassunti compresi), così lo spazio si libera davvero. Se nel frattempo qualcuno
+  ha scritto nell'archivio la compattazione si rimanda al mese dopo (`--force-with-lease`), senza perdere nulla.
+- Riassunti e report sono **conservati per sempre** (pochi kB al mese).
+
 ## 3. Regola di base: il cambio avviene a metà
 
 Se alle 10:00 una presa è libera e alle 10:05 è occupata, non sappiamo quando

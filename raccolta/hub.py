@@ -9,6 +9,10 @@ Struttura della cartella:
   anagrafica/AAAA/AAAA-MM-GG.parquet  fotografia completa (tutti i campi), una al giorno
   ultimo_stato.json             stato più recente di ogni colonnina (per trovare i cambi)
 
+Gestite da altri programmi:
+  riassunti/AAAA-MM.json, report/, README.md   report mensili (workflow "report"), permanenti
+  eventi/ripartenza/stato.csv, manutenzione.json  cancellazione oltre 12 mesi (raccolta/manutenzione.py)
+
 Date e orari in UTC (ora italiana = UTC+1 d'inverno, UTC+2 d'estate).
 I file CSV crescono solo in coda: Git li comprime molto bene.
 """

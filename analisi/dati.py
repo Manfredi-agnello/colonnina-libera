@@ -24,6 +24,7 @@ class Dati:
     letture: pd.DataFrame      # id, ts (UTC), stato_raw
     anagrafica: pd.DataFrame   # una riga per presa: id, operatore, corrente, kw_max, ...
     cicli: pd.DataFrame        # ts, completo
+    presenza: pd.DataFrame = None   # id, giorno (AAAA-MM-GG): in quali giorni ogni presa esisteva
 
 
 def _leggi_csv(cartella: Path, schema: str) -> pd.DataFrame:
@@ -70,7 +71,8 @@ def carica(cartella: Path, quota_giro_completo: float = 0.95) -> Dati:
     letture = (letture.dropna(subset=["stato_raw"])[["id", "ts", "stato_raw"]]
                .sort_values(["id", "ts"]).reset_index(drop=True))
     return Dati(letture=letture, anagrafica=anagrafica,
-                cicli=cicli[["ts", "completo"]].sort_values("ts").reset_index(drop=True))
+                cicli=cicli[["ts", "completo"]].sort_values("ts").reset_index(drop=True),
+                presenza=presenza.reset_index(drop=True))
 
 
 def carica_ipotesi(percorso: Path) -> dict:

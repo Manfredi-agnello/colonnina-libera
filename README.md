@@ -36,6 +36,8 @@ Come vengono calcolati i numeri: [METODO.md](METODO.md).
   che viene **sovrascritto** ogni volta: il repository non cresce.
 - Facoltativo: un **archivio privato** dei cambi di stato di una zona a scelta, scritto in un repository
   privato separato (segreti `HUB_*`). Nei log pubblici non compare mai nessun dato di quella zona.
+  I dati grezzi restano 12 mesi; report mensili e riassunti restano per sempre (vedi METODO.md).
+  Il workflow dei report da copiare nel repository privato è in `modelli/`.
 
 ## Cartelle
 

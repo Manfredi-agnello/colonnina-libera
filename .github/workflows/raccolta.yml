@@ -95,7 +95,12 @@ jobs:
       - name: Salva l'archivio privato (in silenzio)
         if: always() && env.HAS_HUB == 'true'
         run: |
+          # Una volta al mese (dal giorno 3): cancella i dati grezzi oltre 12 mesi, solo se il
+          # riassunto del mese esiste già, e chiede la compattazione. Stampa solo conteggi.
+          python -m raccolta.manutenzione --hub hub-dati || echo "manutenzione archivio: errore (riprova al prossimo giro)"
           cd hub-dati
+          compatta=false
+          if [ -f .compatta ]; then compatta=true; rm -f .compatta; fi
           git config user.name  "raccolta-bot"
           git config user.email "raccolta-bot@users.noreply.github.com"
           git add -A >/dev/null
@@ -103,6 +108,19 @@ jobs:
             git commit -q -m "giro $(date -u +%Y-%m-%dT%H:%MZ)"
             git push -q >/dev/null 2>&1 || { git pull -q --rebase >/dev/null 2>&1 && git push -q >/dev/null 2>&1; } \
               || { echo "salvataggio archivio privato fallito"; exit 1; }
+          fi
+          if [ "$compatta" = true ]; then
+            # Compattazione: nuova storia con un solo commit che contiene i file attuali
+            # (report e riassunti compresi). "--force-with-lease" sovrascrive SOLO se nel
+            # frattempo nessuno ha scritto (es. il report mensile): altrimenti si rimanda.
+            prima=$(git rev-parse HEAD)
+            git checkout -q --orphan compattato
+            git commit -q -m "archivio compattato $(date -u +%Y-%m)"
+            if git push -q --force-with-lease=main:"$prima" origin compattato:main >/dev/null 2>&1; then
+              echo "archivio privato compattato"
+            else
+              echo "compattazione rimandata al mese prossimo (archivio modificato nel frattempo)"
+            fi
           fi
 
       - name: Salva lo stato (sovrascrive il branch "stato", senza storico)

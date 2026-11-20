@@ -3,9 +3,14 @@
     python -m analisi --hub hub-dati                        # ultima settimana completa (lun-dom)
     python -m analisi --hub hub-dati --dal 2026-11-02 --al 2026-11-08
     python -m analisi --hub hub-dati --tutto                # tutto l'archivio
+    python -m analisi --hub hub-dati --mese 2026-10 --salva-riassunto   # report mensile
+
+Con --salva-riassunto il riassunto del mese si salva anche in <hub>/riassunti/AAAA-MM.json:
+quei file restano per sempre (i dati grezzi solo 12 mesi) e servono ai confronti tra mesi.
 
 Crea una cartella in report/ con:
-  sessioni.csv, occupazione_oraria.csv, kwh_giornalieri.csv, affidabilita.csv, report.html
+  sessioni.csv, occupazione_oraria.csv, kwh_giornalieri.csv, affidabilita.csv, report.html,
+  README.md + grafici .svg (leggibili su GitHub), riassunto.json
 I CSV usano ; come separatore e la virgola nei decimali: si aprono con un
 doppio clic in Excel italiano.
 """
@@ -18,7 +23,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import calcoli, dati
+import calendar
+import json
+
+from . import calcoli, dati, report_md, riassunto
 from .report_html import scrivi_report
 
 RADICE = Path(__file__).resolve().parent.parent
@@ -30,6 +38,9 @@ def _csv(df: pd.DataFrame, percorso: Path) -> None:
 
 
 def periodo(args, d: dati.Dati) -> tuple[date, date, str]:
+    if args.mese:
+        anno, mese = map(int, args.mese.split("-"))
+        return date(anno, mese, 1), date(anno, mese, calendar.monthrange(anno, mese)[1]), args.mese
     if args.tutto:
         primo = d.cicli["ts"].min().tz_convert(calcoli.ROMA).date()
         ultimo = d.cicli["ts"].max().tz_convert(calcoli.ROMA).date()
@@ -51,6 +62,9 @@ def main() -> int:
     ap.add_argument("--dal", help="primo giorno incluso (AAAA-MM-GG, ora italiana)")
     ap.add_argument("--al", help="ultimo giorno incluso (AAAA-MM-GG, ora italiana)")
     ap.add_argument("--tutto", action="store_true", help="tutto l'archivio")
+    ap.add_argument("--mese", help="un mese intero (AAAA-MM)")
+    ap.add_argument("--salva-riassunto", action="store_true",
+                    help="con --mese: salva anche <hub>/riassunti/AAAA-MM.json (permanente)")
     ap.add_argument("--uscita", default=None, help="cartella del report (default: report/<periodo>)")
     ap.add_argument("--ipotesi", default=str(RADICE / "config" / "ipotesi_analisi.json"))
     args = ap.parse_args()
@@ -106,6 +120,25 @@ def main() -> int:
     scrivi_report(uscita / "report.html", nome=nome, primo=primo, ultimo=ultimo,
                   tab=tab, sessioni=s, kwh=kwh, ipotesi=ipotesi, anagrafica=d.anagrafica,
                   op_occupazione=op_occ, giorni=GIORNI)
+    # Riassunto (base del report su GitHub e del file permanente)
+    r = riassunto.calcola(primo=primo, ultimo=ultimo, tab=tab, sessioni=s, kwh=kwh, ipotesi=ipotesi,
+                          anagrafica=d.anagrafica, op_occupazione=op_occ, presenza=d.presenza)
+    cartella_riassunti = Path(args.hub) / "riassunti"
+
+    def leggi(chiave):
+        f = cartella_riassunti / f"{chiave}.json"
+        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+    if args.mese:
+        anno, mese = map(int, args.mese.split("-"))
+        prima = f"{anno}-{mese - 1:02d}" if mese > 1 else f"{anno - 1}-12"
+        titolo = f"Report mensile · {report_md.nome_mese(args.mese)}"
+        report_md.scrivi(uscita, r, titolo, precedente=leggi(prima), anno_prima=leggi(f"{anno - 1}-{mese:02d}"))
+        if args.salva_riassunto:
+            cartella_riassunti.mkdir(parents=True, exist_ok=True)
+            (cartella_riassunti / f"{args.mese}.json").write_text(
+                json.dumps(r, ensure_ascii=False, indent=1), encoding="utf-8")
+    else:
+        report_md.scrivi(uscita, r, f"Report · dal {primo:%d/%m/%Y} al {ultimo:%d/%m/%Y}")
     print(f"Report scritto in {uscita}")
     print(f"  periodo {primo} - {ultimo}, sessioni valide: "
           f"{int(s['valida'].sum()) if not s.empty else 0}, "
